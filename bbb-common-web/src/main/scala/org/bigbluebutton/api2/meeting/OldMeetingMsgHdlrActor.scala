@@ -45,6 +45,8 @@ class OldMeetingMsgHdlrActor(val olgMsgGW: OldMessageReceivedGW)
       case m: CreateBreakoutRoomSysCmdMsg       => handleCreateBreakoutRoomSysCmdMsg(m)
       case m: PresentationUploadTokenSysPubMsg  => handlePresentationUploadTokenSysPubMsg(m)
       case m: PresentationConversionRejectedSysMsg => handlePresentationConversionRejectedSysMsg(m)
+      case m: MediaFileUploadTokenSysPubMsg     => handleMediaFileUploadTokenSysPubMsg(m)
+      case m: MediaFileRemoveSysPubMsg          => handleMediaFileRemoveSysPubMsg(m)
       case m: GuestsWaitingApprovedEvtMsg       => handleGuestsWaitingApprovedEvtMsg(m)
       case m: PosInWaitingQueueUpdatedRespMsg   => handlePosInWaitingQueueUpdatedRespMsg(m)
       case m: GuestPolicyChangedEvtMsg          => handleGuestPolicyChangedEvtMsg(m)
@@ -223,6 +225,14 @@ class OldMeetingMsgHdlrActor(val olgMsgGW: OldMessageReceivedGW)
 
   def handlePresentationConversionRejectedSysMsg(msg: PresentationConversionRejectedSysMsg): Unit = {
     olgMsgGW.handle(OldMeetingMsgHdlrActor.toPresentationConversionRejected(msg))
+  }
+
+  def handleMediaFileUploadTokenSysPubMsg(msg: MediaFileUploadTokenSysPubMsg): Unit = {
+    olgMsgGW.handle(new MediaUploadToken(msg.body.mediaFileId, msg.body.authzToken, msg.body.filename, msg.body.meetingId))
+  }
+
+  def handleMediaFileRemoveSysPubMsg(msg: MediaFileRemoveSysPubMsg): Unit = {
+    olgMsgGW.handle(new MediaFileRemoveMessage(msg.body.meetingId, msg.body.mediaFileId))
   }
 
   def handleGuestsWaitingApprovedEvtMsg(msg: GuestsWaitingApprovedEvtMsg): Unit = {

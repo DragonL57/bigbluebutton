@@ -15,6 +15,18 @@ class UrlMappings {
       action = [GET: 'checkPresentationAuthorization']
     }
 
+    "/bigbluebutton/media/$authzToken/upload"(controller: "media") {
+      action = [POST: 'upload']
+    }
+
+    "/bigbluebutton/media/checkMedia"(controller: "media") {
+      action = [GET: 'checkMediaBeforeUploading']
+    }
+
+    "/bigbluebutton/media/checkAuthorization"(controller: "media") {
+      action = [GET: 'checkMediaAuthorization']
+    }
+
     "/bigbluebutton/presentation/test-convert"(controller: "presentation") {
       action = [GET: 'testConversion']
     }

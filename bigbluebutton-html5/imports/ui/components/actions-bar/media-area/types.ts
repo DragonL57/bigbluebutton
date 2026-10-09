@@ -33,6 +33,7 @@ export interface MediaAreaProps {
   allowExternalVideo: boolean;
   stopExternalVideoShare: () => void;
   isCameraAsContentEnabled: boolean;
+  isMediaFileEnabled: boolean;
   hasCameraAsContent: boolean;
   isConnected: boolean;
   hasPresentation: boolean;

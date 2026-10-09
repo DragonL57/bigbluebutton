@@ -17,6 +17,7 @@ import ScreenshareButtonContainer from '/imports/ui/components/actions-bar/media
 import PresentationUploaderContainer from './presentation/container';
 import ExternalVideoView from './external-video/component';
 import CameraAsContentView from './camera-as-content/component';
+import MediaFileView from './media-file/component';
 import { MediaButtonPluginItem } from '../types';
 import { layoutSelectOutput } from '/imports/ui/components/layout/context';
 import { Output } from '/imports/ui/components/layout/layoutTypes';
@@ -40,6 +41,7 @@ interface MediaSharingModalProps {
   isPresentationEnabled: boolean;
   isSharingVideo: boolean;
   allowExternalVideo: boolean;
+  isMediaFileEnabled: boolean;
   stopExternalVideoShare: () => void;
   isMobile: boolean;
   isRTL: boolean;
@@ -137,6 +139,14 @@ const intlMessages = defineMessages({
     id: 'app.actionsBar.actionsDropdown.unshareCameraAsContent',
     description: 'Label for unshare camera as content',
   },
+  uploadMediaFileLabel: {
+    id: 'app.mediaFile.modal.uploadFile',
+    description: 'Upload a media file button',
+  },
+  uploadMediaFileTooltip: {
+    id: 'app.mediaFile.modal.uploadFileTooltip',
+    description: 'Tooltip for the upload media file button',
+  },
   confirmLabel: {
     id: 'app.actionsBar.actionsDropdown.confirmLabel',
     description: 'Confirm button label',
@@ -156,6 +166,7 @@ const MediaSharingModal: React.FC<MediaSharingModalProps> = ({
   isPresentationEnabled,
   isSharingVideo,
   allowExternalVideo,
+  isMediaFileEnabled,
   stopExternalVideoShare,
   isMobile,
   isRTL,
@@ -166,7 +177,7 @@ const MediaSharingModal: React.FC<MediaSharingModalProps> = ({
   const animations = getSettingsSingletonInstance().application?.animations ?? true;
   const actionsBarStyle = layoutSelectOutput((i: Output) => i.actionBar);
   const { screenIsShared: isScreenGloballyBroadcasting } = useIsScreenGloballyBroadcasting();
-  const [currentView, setCurrentView] = useState<'main' | 'presentation' | 'externalVideo' | 'cameraAsContent'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'presentation' | 'externalVideo' | 'cameraAsContent' | 'mediaFile'>('main');
   const [localRequestingPresenter, setLocalRequestingPresenter] = useState(false);
 
   // Mirror the presentation-upload view into in-memory storage so the document-title manager can
@@ -224,6 +235,10 @@ const MediaSharingModal: React.FC<MediaSharingModalProps> = ({
     setCurrentView('externalVideo');
   };
 
+  const handleMediaFileClick = () => {
+    setCurrentView('mediaFile');
+  };
+
   const handleCameraAsContentClick = () => {
     screenshareHasEnded();
     setCurrentView('cameraAsContent');
@@ -255,6 +270,16 @@ const MediaSharingModal: React.FC<MediaSharingModalProps> = ({
               text={intl.formatMessage(intlMessages.mediaSharingVideoLink)}
               icon={<Icon iconName="external-video" />}
               onClick={handleExternalVideoClick}
+            />
+          )}
+          {amIPresenter && isMediaFileEnabled && (
+            <MediaButton
+              dataTest="uploadMediaFile"
+              color="default"
+              text={intl.formatMessage(intlMessages.uploadMediaFileLabel)}
+              icon={<Icon iconName="upload" />}
+              tooltip={intl.formatMessage(intlMessages.uploadMediaFileTooltip)}
+              onClick={handleMediaFileClick}
             />
           )}
           {isCameraAsContentEnabled && amIPresenter && (
@@ -321,6 +346,15 @@ const MediaSharingModal: React.FC<MediaSharingModalProps> = ({
           onActionCompleted={handleBackClick}
           isSharingVideo={isSharingVideo}
           stopExternalVideoShare={stopExternalVideoShare}
+        />
+      );
+    } else if (currentView === 'mediaFile') {
+      subViewTitle = intl.formatMessage(intlMessages.uploadMediaFileLabel);
+      subViewIcon = <Icon iconName="upload" />;
+      subViewSpecificContent = (
+        <MediaFileView
+          intl={intl}
+          onActionCompleted={handleBackClick}
         />
       );
     } else if (currentView === 'cameraAsContent') {

@@ -1,6 +1,9 @@
 {
     "compilerOptions": {
-        "baseUrl": ".",
-        "paths": { "/*": ["*"] }
+        "paths": {
+            "/*": ["./*"],
+            "imports/*": ["./imports/*"],
+            "client/*": ["./client/*"]
+        }
     }
 }

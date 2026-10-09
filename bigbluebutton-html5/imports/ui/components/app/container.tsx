@@ -16,6 +16,7 @@ import {
   layoutSelectInput,
   layoutDispatch,
 } from '/imports/ui/components/layout/context';
+import { MEDIA_FILE_GENERIC_CONTENT_ID } from '/imports/ui/components/media-file-player/service';
 import {
   DispatcherFunction, Input, Layout,
 } from '/imports/ui/components/layout/layoutTypes';
@@ -108,9 +109,11 @@ const AppContainer: React.FC<AppContainerProps> = ({ pluginConfig }) => {
   const shouldShowExternalVideo = isExternalVideoEnabled && hasExternalVideo;
   const shouldShowScreenshare = (viewScreenshare || presenter)
     && (hasScreenshare || hasCameraAsContent) && showScreenshare;
+  // A shared file owns the media area the way an external video does, so the slides yield to it.
+  const isMediaFileSharing = genericMainContent.genericContentId === MEDIA_FILE_GENERIC_CONTENT_ID;
   const shouldShowPresentation = !shouldShowScreenshare && !isSharedNotesPinned
-    && !shouldShowExternalVideo && (presentationIsOpen || presentationRestoreOnUpdate)
-    && isPresentationEnabled;
+    && !shouldShowExternalVideo && !isMediaFileSharing
+    && (presentationIsOpen || presentationRestoreOnUpdate) && isPresentationEnabled;
 
   const {
     isBreakout = false,
