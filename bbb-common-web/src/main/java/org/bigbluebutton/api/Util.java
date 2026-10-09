@@ -86,6 +86,40 @@ public final class Util {
 		return null;
 	}
 
+	/**
+	 * Directory that holds one uploaded media file: mediaDir/meetingId/meetingId/mediaFileId,
+	 * the same shape createPresentationDir uses. The file inside keeps the extension
+	 * because the client player picks its backend from the extension.
+	 */
+	public static File createMediaDir(String meetingId, String mediaDir, String mediaFileId) {
+		// isPresIdValidFormat is reused: the media id is generated the same way as a
+		// presentation id (millis plus lowercase alphanumerics) and the pattern is
+		// identical.
+		if (Util.isMeetingIdValidFormat(meetingId) && Util.isPresIdValidFormat(mediaFileId)) {
+			String meetingPath = mediaDir + File.separatorChar + meetingId + File.separatorChar + meetingId;
+			String mediaPath = meetingPath + File.separatorChar + mediaFileId;
+			File dir = new File(mediaPath);
+			if (dir.mkdirs()) {
+				return dir;
+			}
+		}
+
+		return null;
+	}
+
+	/** Directory of one uploaded media file, null when it is not there. */
+	public static File getMediaFileDir(String meetingId, String mediaDir, String mediaFileId) {
+		if (Util.isMeetingIdValidFormat(meetingId) && Util.isPresIdValidFormat(mediaFileId)) {
+			String meetingPath = mediaDir + File.separatorChar + meetingId + File.separatorChar + meetingId;
+			File dir = new File(meetingPath + File.separatorChar + mediaFileId);
+			if (dir.isDirectory() && dir.exists()) {
+				return dir;
+			}
+		}
+
+		return null;
+	}
+
 	public static File getMeetingDirPath(String presentationBaseDir, String meetingId) {
 		if (Util.isMeetingIdValidFormat(meetingId)) {
 			String meetingPath = presentationBaseDir + File.separatorChar + meetingId + File.separatorChar + meetingId;

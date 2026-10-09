@@ -28,6 +28,7 @@ const MediaArea = (props: MediaAreaProps) => {
     isConnected,
     mediaAreaItems,
     isCameraAsContentEnabled,
+    isMediaFileEnabled,
     hasCameraAsContent,
     hasPresentation,
     handleTakePresenter,
@@ -97,6 +98,7 @@ const MediaArea = (props: MediaAreaProps) => {
         isConnected={isConnected}
         mediaAreaItems={mediaAreaItems}
         isCameraAsContentEnabled={isCameraAsContentEnabled}
+        isMediaFileEnabled={isMediaFileEnabled}
         hasCameraAsContent={hasCameraAsContent}
         hasPresentation={hasPresentation}
         handleTakePresenter={handleTakePresenter}

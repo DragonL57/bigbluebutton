@@ -359,6 +359,37 @@ public:
       # - 3006
   externalVideoPlayer:
     enabled: true
+  # Media file upload and playback: the presenter uploads an audio or video file
+  # from their device and the room plays it in sync. Fork feature (UpLearn).
+  mediaFile:
+    enabled: true
+    uploadEndpoint: '/bigbluebutton/media/upload'
+    sharingUrl: '/bigbluebutton/media'
+    # mirroredFromBBBCore are values controlled in bbb-web properties file. We include a copy here for notification purposes
+    mirroredFromBBBCore:
+      uploadSizeMax: 50000000
+    # If the following mime-types list is changed, please, make sure to also change:
+    # bbb-common-web/src/main/java/org/bigbluebutton/presentation/MediaFileTypes.java
+    # docs/docs/development/api.md
+    #
+    # Only formats browsers can decode without a plugin are listed. m4v and mov
+    # are left out on purpose: browsers refuse video/x-m4v and video/quicktime
+    # even when the codecs inside are supported.
+    uploadValidMimeTypes:
+      - extension: .mp3
+        mime: audio/mpeg
+      - extension: .m4a
+        mime: audio/mp4
+      - extension: .aac
+        mime: audio/aac
+      - extension: .ogg
+        mime: audio/ogg
+      - extension: .wav
+        mime: audio/wav
+      - extension: .webm
+        mime: video/webm
+      - extension: .mp4
+        mime: video/mp4
   kurento:
     wsUrl: HOST
     cameraWsOptions:

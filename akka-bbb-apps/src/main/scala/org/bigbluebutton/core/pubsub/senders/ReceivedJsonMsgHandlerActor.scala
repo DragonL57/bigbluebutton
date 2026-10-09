@@ -503,6 +503,20 @@ class ReceivedJsonMsgHandlerActor(
       case StopExternalVideoPubMsg.NAME =>
         routeGenericMsg[StopExternalVideoPubMsg](envelope, jsonNode)
 
+      // MediaFile (fork feature: upload an audio or video file and play it in the room)
+      case MediaFileUploadTokenReqMsg.NAME =>
+        routeGenericMsg[MediaFileUploadTokenReqMsg](envelope, jsonNode)
+      case StartMediaPlayerPubMsg.NAME =>
+        routeGenericMsg[StartMediaPlayerPubMsg](envelope, jsonNode)
+      case UpdateMediaPlayerPubMsg.NAME =>
+        routeGenericMsg[UpdateMediaPlayerPubMsg](envelope, jsonNode)
+      case StopMediaPlayerPubMsg.NAME =>
+        routeGenericMsg[StopMediaPlayerPubMsg](envelope, jsonNode)
+      case RemoveMediaFilePubMsg.NAME =>
+        routeGenericMsg[RemoveMediaFilePubMsg](envelope, jsonNode)
+      case MediaFileUploadedSysPubMsg.NAME =>
+        routeGenericMsg[MediaFileUploadedSysPubMsg](envelope, jsonNode)
+
       // Timer
       case ActivateTimerReqMsg.NAME =>
         routeGenericMsg[ActivateTimerReqMsg](envelope, jsonNode)

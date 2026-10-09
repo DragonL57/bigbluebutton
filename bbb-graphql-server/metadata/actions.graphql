@@ -33,6 +33,33 @@ type Mutation {
 }
 
 type Mutation {
+  mediaFileRequestUploadToken(
+    filename: String!
+    uploadTemporaryId: String!
+  ): Boolean
+}
+
+type Mutation {
+  mediaFileStart(
+    mediaFileId: String!
+  ): Boolean
+}
+
+type Mutation {
+  mediaFileStop: Boolean
+}
+
+type Mutation {
+  mediaFileUpdate(
+    status: String!
+    rate: Float!
+    time: Float!
+    state: Int!
+    compact: Boolean!
+  ): Boolean
+}
+
+type Mutation {
   breakoutRoomCreate(
     record: Boolean!
     captureNotes: Boolean!
@@ -782,6 +809,12 @@ type Mutation {
 
 type Mutation {
   userSetPresenterRequest(requestedPresenter: Boolean!, userId: String, approved: Boolean): Boolean
+}
+
+type Mutation {
+  mediaFileRemove(
+    mediaFileId: String!
+  ): Boolean
 }
 
 input BreakoutRoom {

@@ -18,6 +18,7 @@ import WebcamContainer from '../webcam/component';
 import PresentationContainer from '../presentation/container';
 import ScreenshareContainer from '../screenshare/container';
 import ExternalVideoPlayerContainer from '../external-video-player/external-video-player-graphql/component';
+import MediaFilePlayerContainer from '../media-file-player/container';
 import GenericContentMainAreaContainer from '../generic-content/generic-main-content/container';
 import EmojiRainContainer from '../emoji-rain/container';
 import Styled from './styles';
@@ -162,6 +163,7 @@ const App: React.FC<AppProps> = ({
           <NavBarContainer main="new" />
           <WebcamContainer />
           {!isNonMediaLayout && <ExternalVideoPlayerContainer />}
+          {!isNonMediaLayout && <MediaFilePlayerContainer />}
           <GenericContentMainAreaContainer
             genericMainContentId={genericMainContentId}
           />

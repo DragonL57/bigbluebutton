@@ -55,6 +55,7 @@ with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
         <property name="learningDashboardService" ref="learningDashboardService"/>
         <property name="recordingService" ref="recordingService"/>
         <property name="presDownloadService" ref="presDownloadService"/>
+        <property name="mediaDir" value="${mediaDir}"/>
         <property name="paramsProcessorUtil" ref="paramsProcessorUtil"/>
         <property name="stunTurnService" ref="stunTurnService"/>
         <property name="userCleanupTimerTask" ref="userCleanupTimerTask"/>

@@ -12,6 +12,7 @@ export interface MeetingClientSettings {
 export interface Public {
   app: App
   externalVideoPlayer: ExternalVideoPlayer
+  mediaFile: MediaFile
   kurento: Kurento
   poll: Poll
   captions: Captions
@@ -333,6 +334,18 @@ export interface Branding {
 
 export interface ExternalVideoPlayer {
   enabled: boolean
+}
+
+export interface MediaFile {
+  enabled: boolean
+  uploadEndpoint: string
+  sharingUrl: string
+  mirroredFromBBBCore: MediaFileMirroredFromBbbcore
+  uploadValidMimeTypes: UploadValidMimeType[]
+}
+
+export interface MediaFileMirroredFromBbbcore {
+  uploadSizeMax: number
 }
 
 export interface Kurento {

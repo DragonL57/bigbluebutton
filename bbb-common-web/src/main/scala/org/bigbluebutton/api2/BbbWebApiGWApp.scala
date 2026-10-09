@@ -445,6 +445,11 @@ class BbbWebApiGWApp(
     }
   }
 
+  def sendMediaFileUploaded(msg: MediaFileUploadedMessage): Unit = {
+    val event = MsgBuilder.buildMediaFileUploadedSysMsg(msg)
+    msgToAkkaAppsEventBus.publish(MsgToAkkaApps(toAkkaAppsChannel, event))
+  }
+
   def sendChatMessage(msg: ChatMessageFromApi): Unit ={
     if (msg.isInstanceOf[ChatMessageFromApi]){
       val event = MsgBuilder.buildSendChatMessageFromApi(msg.asInstanceOf[ChatMessageFromApi])

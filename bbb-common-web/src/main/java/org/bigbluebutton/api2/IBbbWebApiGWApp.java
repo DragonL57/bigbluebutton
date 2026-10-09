@@ -13,6 +13,7 @@ import org.bigbluebutton.api.messaging.converters.messages.UnpublishedRecordingM
 import org.bigbluebutton.api.messaging.converters.messages.DeletedRecordingMessage;
 import org.bigbluebutton.api.messaging.messages.ChatMessageFromApi;
 import org.bigbluebutton.presentation.messages.IDocConversionMsg;
+import org.bigbluebutton.presentation.messages.MediaFileUploadedMessage;
 
 public interface IBbbWebApiGWApp {
   void send(String channel, String message);
@@ -97,5 +98,6 @@ public interface IBbbWebApiGWApp {
   void unpublishedRecording(UnpublishedRecordingMessage msg);
   void deletedRecording(DeletedRecordingMessage msg);
   void sendDocConversionMsg(IDocConversionMsg msg);
+  void sendMediaFileUploaded(MediaFileUploadedMessage msg);
   void sendChatMessage(ChatMessageFromApi msg);
 }

@@ -84,6 +84,20 @@ export interface ExternalVideo {
     right?: number;
 }
 
+export interface MediaPlayer {
+    hasMediaPlayer: boolean;
+    height: number;
+    position: string;
+    browserHeight?: number;
+    browserWidth?: number;
+    display?: boolean;
+    width?: number;
+    left?: number;
+    right?: number;
+    top?: number;
+    zIndex?: number;
+}
+
 export interface GenericContentMainArea {
     genericContentId?: string;
     browserHeight?: number;
@@ -273,6 +287,7 @@ interface Input {
     userMetadata: NonNullable<unknown>;
     externalVideo: ExternalVideo;
     genericMainContent: GenericContentMainArea;
+    mediaPlayer: MediaPlayer;
     navBar: NavBar;
     notificationsBar: NotificationsBar;
     presentation: Presentation;
@@ -291,6 +306,7 @@ interface Output {
     dropZoneAreas: DropzoneAreas;
     externalVideo: ExternalVideo;
     genericMainContent: GenericContentMainArea;
+    mediaPlayer: MediaPlayer;
     mediaArea: Size;
     navBar: NavBar;
     presentation: Presentation;

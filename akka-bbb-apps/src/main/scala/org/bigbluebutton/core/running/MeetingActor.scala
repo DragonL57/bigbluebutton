@@ -16,6 +16,7 @@ import org.bigbluebutton.core.apps.mediagroups.MediaGroupHdlrs
 import org.bigbluebutton.core.apps.caption.CaptionApp2x
 import org.bigbluebutton.core.apps.chat.ChatApp2x
 import org.bigbluebutton.core.apps.externalvideo.ExternalVideoApp2x
+import org.bigbluebutton.core.apps.mediafile.MediaFileApp2x
 import org.bigbluebutton.core.apps.pads.{ PadsApp2x, PadslHdlrHelpers }
 import org.bigbluebutton.core.apps.screenshare.ScreenshareApp2x
 import org.bigbluebutton.core.apps.audiocaptions.AudioCaptionsApp2x
@@ -138,6 +139,7 @@ class MeetingActor(
   val captionApp2x = new CaptionApp2x
   val chatApp2x = new ChatApp2x
   val externalVideoApp2x = new ExternalVideoApp2x
+  val mediaFileApp2x = new MediaFileApp2x
   val padsApp2x = new PadsApp2x
   val usersApp = new UsersApp(liveMeeting, outGW, eventBus)
   val groupChatApp = new GroupChatHdlrs
@@ -853,6 +855,22 @@ class MeetingActor(
       case m: UpdateExternalVideoPubMsg => externalVideoApp2x.handle(m, liveMeeting, msgBus)
       case m: StopExternalVideoPubMsg =>
         externalVideoApp2x.handle(m, liveMeeting, msgBus)
+        updateUserLastActivity(m.header.userId)
+
+      // MediaFile (fork feature)
+      case m: MediaFileUploadTokenReqMsg =>
+        mediaFileApp2x.handle(m, liveMeeting, msgBus)
+        updateUserLastActivity(m.header.userId)
+      case m: MediaFileUploadedSysPubMsg => mediaFileApp2x.handle(m, liveMeeting, msgBus)
+      case m: StartMediaPlayerPubMsg =>
+        mediaFileApp2x.handle(m, liveMeeting, msgBus)
+        updateUserLastActivity(m.header.userId)
+      case m: UpdateMediaPlayerPubMsg => mediaFileApp2x.handle(m, liveMeeting, msgBus)
+      case m: StopMediaPlayerPubMsg =>
+        mediaFileApp2x.handle(m, liveMeeting, msgBus)
+        updateUserLastActivity(m.header.userId)
+      case m: RemoveMediaFilePubMsg =>
+        mediaFileApp2x.handle(m, liveMeeting, msgBus)
         updateUserLastActivity(m.header.userId)
 
       //Timer

@@ -38,6 +38,8 @@ const propTypes = {
   setPresentation: PropTypes.func.isRequired,
   removePresentation: PropTypes.func.isRequired,
   presentationEnabled: PropTypes.bool.isRequired,
+  isVideoSharing: PropTypes.bool,
+  stopMediaFileSharing: PropTypes.func,
   externalUploadData: PropTypes.shape({
     presentationUploadExternalDescription: PropTypes.string,
     presentationUploadExternalUrl: PropTypes.string,
@@ -46,6 +48,8 @@ const propTypes = {
 
 const defaultProps = {
   externalUploadData: {},
+  isVideoSharing: false,
+  stopMediaFileSharing: () => {},
 };
 
 const intlMessages = defineMessages({
@@ -431,8 +435,15 @@ class PresentationUploader extends Component {
     const {
       setPresentation,
       onActionCompleted, // Get the callback from props
+      isVideoSharing,
+      stopMediaFileSharing,
     } = this.props;
     const { activeThumbnailId } = this.state;
+
+    // A video takes the media area the way an external video does, so it stays on top of a shared
+    // presentation. Sharing a presentation is how the presenter asks for the slides, so the video
+    // yields first, the same way it yields to a screenshare or to an external video.
+    if (isVideoSharing) stopMediaFileSharing();
 
     if (activeThumbnailId) {
       setPresentation(activeThumbnailId);
@@ -709,6 +720,7 @@ class PresentationUploader extends Component {
     const {
       isPresenter,
       currentPresentation,
+      isVideoSharing,
       intl,
     } = this.props;
     if (!isPresenter) return null;
@@ -728,7 +740,8 @@ class PresentationUploader extends Component {
             dataTest="sharePresentationButton"
             label={intl.formatMessage(intlMessages.shareLabel)}
             onClick={this.handleConfirm}
-            disabled={currentPresentation === activeThumbnailId || !activeThumbnailId}
+            disabled={(currentPresentation === activeThumbnailId && !isVideoSharing)
+              || !activeThumbnailId}
           />
         </ModalStyled.FooterContainer>
       </div>
