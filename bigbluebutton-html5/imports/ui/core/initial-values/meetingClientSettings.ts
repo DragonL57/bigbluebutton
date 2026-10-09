@@ -258,6 +258,23 @@ export const meetingClientSettingsInitialValues: MeetingClientSettings = {
     externalVideoPlayer: {
       enabled: true,
     },
+    mediaFile: {
+      enabled: true,
+      uploadEndpoint: '/bigbluebutton/media/upload',
+      sharingUrl: '/bigbluebutton/media',
+      mirroredFromBBBCore: {
+        uploadSizeMax: 50000000,
+      },
+      uploadValidMimeTypes: [
+        { extension: '.mp3', mime: 'audio/mpeg' },
+        { extension: '.m4a', mime: 'audio/mp4' },
+        { extension: '.aac', mime: 'audio/aac' },
+        { extension: '.ogg', mime: 'audio/ogg' },
+        { extension: '.wav', mime: 'audio/wav' },
+        { extension: '.webm', mime: 'video/webm' },
+        { extension: '.mp4', mime: 'video/mp4' },
+      ],
+    },
     kurento: {
       wsUrl: 'HOST',
       cameraWsOptions: {

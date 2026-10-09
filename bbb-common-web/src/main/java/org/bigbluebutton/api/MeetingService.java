@@ -46,6 +46,7 @@ import org.bigbluebutton.api.messaging.converters.messages.PublishedRecordingMes
 import org.bigbluebutton.api.messaging.converters.messages.UnpublishedRecordingMessage;
 import org.bigbluebutton.api.messaging.converters.messages.DeletedRecordingMessage;
 import org.bigbluebutton.api.messaging.messages.*;
+import org.bigbluebutton.presentation.messages.MediaFileUploadedMessage;
 import org.bigbluebutton.api.service.impl.SharedNotesRedirectValidatorService;
 import org.bigbluebutton.api.util.ParsedPluginManifest;
 import org.bigbluebutton.api.util.PluginUtils;
@@ -109,10 +110,12 @@ public class MeetingService implements MessageListener {
   private SharedNotesRedirectValidatorService sharedNotesRedirectValidator;
   private SecureUrlDownloader secureUrlDownloader;
   private int maxSharedNotesInitialContentUrlPayloadSize;
+  private String mediaDir;
 
   private IBbbWebApiGWApp gw;
 
   private final ConcurrentMap<String, PresentationUploadToken> uploadAuthzTokens;
+  private final ConcurrentMap<String, MediaUploadToken> mediaUploadAuthzTokens;
 
   ObjectMapper objectMapper = new ObjectMapper();
 
@@ -121,6 +124,7 @@ public class MeetingService implements MessageListener {
     sessions = new ConcurrentHashMap<String, UserSession>(8, 0.9f, 1);
     removedSessions = new ConcurrentHashMap<String, UserSessionBasicData>(8, 0.9f, 1);
     uploadAuthzTokens = new ConcurrentHashMap<String, PresentationUploadToken>();
+    mediaUploadAuthzTokens = new ConcurrentHashMap<String, MediaUploadToken>();
   }
 
   public void addUserSession(String token, UserSession user) {
@@ -268,6 +272,10 @@ public class MeetingService implements MessageListener {
     gw.sendChatMessage(new ChatMessageFromApi(meetingId, name, message));
   }
 
+  public void sendMediaFileUploaded(MediaFileUploadedMessage msg) {
+    gw.sendMediaFileUploaded(msg);
+  }
+
   private void kickOffProcessingOfRecording(Meeting m) {
     if (m.isRecord() && m.getNumUsers() == 0) {
       processRecording(m);
@@ -293,6 +301,29 @@ public class MeetingService implements MessageListener {
   public PresentationUploadToken consumePresentationUploadToken(String authzToken) {
     if (authzToken == null) return null;
     return uploadAuthzTokens.remove(authzToken);
+  }
+
+  /* Media file upload tokens (fork feature). Same shape as the presentation pair
+     above: akka-apps mints the token, bbb-web holds it until the upload POST
+     consumes it. No max-size message is sent to the room because the client
+     refuses an oversized file before the request; the endpoint answers 403 as a
+     backstop. */
+  public MediaUploadToken getMediaUploadToken(String authzToken) {
+    if (authzToken == null) return null;
+    return mediaUploadAuthzTokens.get(authzToken);
+  }
+
+  public MediaUploadToken consumeMediaUploadToken(String authzToken) {
+    if (authzToken == null) return null;
+    return mediaUploadAuthzTokens.remove(authzToken);
+  }
+
+  public void expireMediaUploadToken(String usedToken) {
+    if (usedToken != null) mediaUploadAuthzTokens.remove(usedToken);
+  }
+
+  public void setMediaDir(String mediaDir) {
+    this.mediaDir = mediaDir;
   }
 
   public void sendPresentationUploadMaxFilesizeMessage(PresentationUploadToken presUploadToken, int uploadedFileSize, int maxUploadFileSize) {
@@ -1015,6 +1046,35 @@ public class MeetingService implements MessageListener {
     if (usedToken != null) uploadAuthzTokens.remove(usedToken);
   }
 
+  private void processMediaUploadToken(MediaUploadToken message) {
+    mediaUploadAuthzTokens.put(message.authzToken, message);
+  }
+
+
+  /**
+   * akka-apps removed the row, the bytes live here under
+   * mediaDir/meetingId/meetingId/mediaFileId. The presentation helper deletes the parent
+   * directory of the file it is handed, so it gets the file inside that directory, which
+   * holds exactly one.
+   */
+  private void processMediaFileRemove(MediaFileRemoveMessage message) {
+    if (mediaDir == null || mediaDir.isEmpty()) {
+      log.error("mediaDir is not configured, the file of mediaFileId {} stays on disk", message.mediaFileId);
+      return;
+    }
+
+    File mediaFileDir = Util.getMediaFileDir(message.meetingId, mediaDir, message.mediaFileId);
+    if (mediaFileDir == null) {
+      return;
+    }
+
+    File[] storedFiles = mediaFileDir.listFiles();
+    if (storedFiles == null || storedFiles.length == 0) {
+      return;
+    }
+
+    org.bigbluebutton.presentation.Util.deleteDirectoryFromFileHandlingErrors(storedFiles[0]);
+  }
   public void addUserCustomData(String meetingId, String userID,
                                 Map<String, String> userCustomData) {
     Meeting m = getMeeting(meetingId);
@@ -1458,6 +1518,10 @@ public class MeetingService implements MessageListener {
           processCreateBreakoutRoom((CreateBreakoutRoom) message);
         } else if (message instanceof PresentationUploadToken) {
           processPresentationUploadToken((PresentationUploadToken) message);
+        } else if (message instanceof MediaUploadToken) {
+          processMediaUploadToken((MediaUploadToken) message);
+        } else if (message instanceof MediaFileRemoveMessage) {
+          processMediaFileRemove((MediaFileRemoveMessage) message);
         } else if (message instanceof PositionInWaitingQueueUpdated) {
           processPositionInWaitingQueueUpdated((PositionInWaitingQueueUpdated) message);
         } else if (message instanceof GuestStatusChangedEventMsg) {

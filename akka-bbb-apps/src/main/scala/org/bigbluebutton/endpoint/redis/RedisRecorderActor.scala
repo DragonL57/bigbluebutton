@@ -147,6 +147,9 @@ class RedisRecorderActor(
       case m: StartExternalVideoEvtMsg              => handleStartExternalVideoEvtMsg(m)
       case m: UpdateExternalVideoEvtMsg             => handleUpdateExternalVideoEvtMsg(m)
       case m: StopExternalVideoEvtMsg               => handleStopExternalVideoEvtMsg(m)
+      case m: StartMediaPlayerEvtMsg                => handleStartMediaPlayerEvtMsg(m)
+      case m: UpdateMediaPlayerEvtMsg               => handleUpdateMediaPlayerEvtMsg(m)
+      case m: StopMediaPlayerEvtMsg                 => handleStopMediaPlayerEvtMsg(m)
 
       // Timer
       case m: ActivateTimerRespMsg                  => handleActivateTimerRespMsg(m)
@@ -616,6 +619,32 @@ class RedisRecorderActor(
     ev.setRate(msg.body.rate)
     ev.setTime(msg.body.time)
     ev.setState(msg.body.state)
+
+    record(msg.header.meetingId, ev.toMap.asJava)
+  }
+
+  private def handleStartMediaPlayerEvtMsg(msg: StartMediaPlayerEvtMsg) {
+    val ev = new StartMediaPlayerRecordEvent()
+    ev.setMeetingId(msg.header.meetingId)
+    ev.setMediaFileId(msg.body.mediaFileId)
+
+    record(msg.header.meetingId, ev.toMap.asJava)
+  }
+
+  private def handleUpdateMediaPlayerEvtMsg(msg: UpdateMediaPlayerEvtMsg) {
+    val ev = new UpdateMediaPlayerRecordEvent()
+    ev.setMeetingId(msg.header.meetingId)
+    ev.setStatus(msg.body.status)
+    ev.setRate(msg.body.rate)
+    ev.setTime(msg.body.time)
+    ev.setState(msg.body.state)
+
+    record(msg.header.meetingId, ev.toMap.asJava)
+  }
+
+  private def handleStopMediaPlayerEvtMsg(msg: StopMediaPlayerEvtMsg) {
+    val ev = new StopMediaPlayerRecordEvent()
+    ev.setMeetingId(msg.header.meetingId)
 
     record(msg.header.meetingId, ev.toMap.asJava)
   }
