@@ -144,6 +144,9 @@ export const ACTIONS = {
   SET_HAS_GENERIC_CONTENT: 'setHasGenericContent',
   SET_GENERIC_CONTENT_OUTPUT: 'setGenericContentOutput',
 
+  SET_MEDIA_PLAYER_INPUT: 'setMediaPlayerInput',
+  SET_MEDIA_PLAYER_OUTPUT: 'setMediaPlayerOutput',
+
   SET_SHARED_NOTES_OUTPUT: 'setSharedNotesOutput',
   SET_NOTES_IS_PINNED: 'setNotesIsPinned',
 

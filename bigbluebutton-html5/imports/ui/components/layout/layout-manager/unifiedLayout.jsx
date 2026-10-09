@@ -46,6 +46,7 @@ const UnifiedLayout = (props) => {
   const genericMainContentInput = layoutSelectInput((i) => i.genericMainContent);
   const screenShareInput = layoutSelectInput((i) => i.screenShare);
   const sharedNotesInput = layoutSelectInput((i) => i.sharedNotes);
+  const mediaPlayerInput = layoutSelectInput((i) => i.mediaPlayer);
 
   const sidebarNavigationInput = layoutSelectInput((i) => i.sidebarNavigation);
   const sidebarContentInput = layoutSelectInput((i) => i.sidebarContent);
@@ -333,6 +334,47 @@ const UnifiedLayout = (props) => {
     };
   };
 
+  // Space the audio player asks for, and what is left for everything else. A bottom band takes the
+  // height off the content; a top band moves the content down by the same amount. The gap keeps the
+  // row from touching the content it shares the area with. A video asks for nothing here: it claims
+  // the area the way a screenshare and an external video do.
+  const calculatesMediaPlayerBand = (bounds) => {
+    const { hasMediaPlayer, height, position } = mediaPlayerInput;
+    if (!hasMediaPlayer || height <= 0) {
+      return {
+        band: {
+          display: false,
+          width: 0,
+          height: 0,
+          top: 0,
+          left: null,
+          right: null,
+          zIndex: 1,
+        },
+        area: bounds,
+      };
+    }
+    const reserved = Math.min(height + DEFAULT_VALUES.camerasMargin, bounds.height);
+    const isOnTop = position === 'top';
+
+    return {
+      band: {
+        display: true,
+        width: bounds.width,
+        height,
+        top: isOnTop ? bounds.top : bounds.top + bounds.height - height,
+        left: !isRTL ? bounds.left : null,
+        right: isRTL ? bounds.left : null,
+        zIndex: 1,
+      },
+      area: {
+        ...bounds,
+        top: isOnTop ? bounds.top + reserved : bounds.top,
+        height: bounds.height - reserved,
+      },
+    };
+  };
+
   const calculatesCameraDockBounds = (sidebarNavWidth, sidebarContentWidth, mediaAreaBounds) => {
     const { baseCameraDockBounds } = props;
     const sidebarSize = sidebarNavWidth + sidebarContentWidth;
@@ -407,7 +449,7 @@ const UnifiedLayout = (props) => {
         );
       }
 
-      cameraDockBounds.top = navBarHeight + bannerAreaHeight();
+      cameraDockBounds.top = mediaAreaBounds.top;
       cameraDockBounds.left = mediaAreaBounds.left;
       cameraDockBounds.right = isRTL ? sidebarSize : null;
       cameraDockBounds.minWidth = mediaAreaBounds.width;
@@ -515,8 +557,19 @@ const UnifiedLayout = (props) => {
 
     const { height: actionBarHeight } = calculatesActionbarHeight();
     const navBarHeight = calculatesNavbarHeight();
+    // The audio player asks for a band out of the media area: a bottom band takes its height off
+    // the content, and a top band moves the content down by the same amount. The gap between the
+    // two is the one the camera dock uses.
+    const isMediaPlayerBand = mediaPlayerInput.hasMediaPlayer && mediaPlayerInput.height > 0;
+    const isMediaPlayerBandOnTop = isMediaPlayerBand && mediaPlayerInput.position === 'top';
+    const mediaPlayerBandAtBottom = isMediaPlayerBand && !isMediaPlayerBandOnTop
+      ? mediaPlayerInput.height + DEFAULT_VALUES.camerasMargin : 0;
+    const mediaPlayerBandOnTop = isMediaPlayerBandOnTop
+      ? mediaPlayerInput.height + DEFAULT_VALUES.camerasMargin : 0;
+    const mediaAreaTop = navBarHeight + bannerAreaHeight() + mediaPlayerBandOnTop;
     const mediaAreaHeight = windowHeight()
-      - (DEFAULT_VALUES.navBarHeight + actionBarHeight + bannerAreaHeight());
+      - (DEFAULT_VALUES.navBarHeight + actionBarHeight + bannerAreaHeight())
+      - mediaPlayerBandAtBottom;
     const sidebarContentMarginToMedia = windowWidth()
       * SIDEBAR_CONTENT_MARGIN_TO_MEDIA_PERCENTAGE_WIDTH;
     const mediaAreaWidth = windowWidth()
@@ -561,8 +614,7 @@ const UnifiedLayout = (props) => {
         case CAMERADOCK_POSITION.CONTENT_TOP: {
           mediaBounds.width = mediaAreaWidth;
           mediaBounds.height = mediaAreaHeight - cameraDockBounds.height - camerasMargin;
-          mediaBounds.top = navBarHeight + cameraDockBounds.height
-            + camerasMargin + bannerAreaHeight();
+          mediaBounds.top = mediaAreaTop + cameraDockBounds.height + camerasMargin;
           mediaBounds.left = !isRTL ? sidebarSize : null;
           mediaBounds.right = isRTL ? sidebarSize : null;
           break;
@@ -571,7 +623,7 @@ const UnifiedLayout = (props) => {
           // Clamped: a negative width reads as open to the `width === 0` guards.
           mediaBounds.width = max(mediaAreaWidth - cameraDockBounds.width - camerasMargin * 2, 0);
           mediaBounds.height = mediaAreaHeight;
-          mediaBounds.top = navBarHeight + bannerAreaHeight();
+          mediaBounds.top = mediaAreaTop;
           mediaBounds.left = !isRTL ? sidebarSize : null;
           mediaBounds.right = isRTL ? sidebarSize - camerasMargin * 2 : null;
           break;
@@ -579,7 +631,7 @@ const UnifiedLayout = (props) => {
         case CAMERADOCK_POSITION.CONTENT_BOTTOM: {
           mediaBounds.width = mediaAreaWidth;
           mediaBounds.height = mediaAreaHeight - cameraDockBounds.height - camerasMargin;
-          mediaBounds.top = navBarHeight - camerasMargin + bannerAreaHeight();
+          mediaBounds.top = mediaAreaTop - camerasMargin;
           mediaBounds.left = !isRTL ? sidebarSize : null;
           mediaBounds.right = isRTL ? sidebarSize : null;
           break;
@@ -587,7 +639,7 @@ const UnifiedLayout = (props) => {
         case CAMERADOCK_POSITION.CONTENT_LEFT: {
           mediaBounds.width = max(mediaAreaWidth - cameraDockBounds.width - camerasMargin * 2, 0);
           mediaBounds.height = mediaAreaHeight;
-          mediaBounds.top = navBarHeight + bannerAreaHeight();
+          mediaBounds.top = mediaAreaTop;
           const sizeValue = sidebarNavWidth + sidebarContentWidth
             + mediaAreaWidth - mediaBounds.width;
           mediaBounds.left = !isRTL ? sizeValue : null;
@@ -597,7 +649,7 @@ const UnifiedLayout = (props) => {
         case CAMERADOCK_POSITION.SIDEBAR_CONTENT_BOTTOM: {
           mediaBounds.width = mediaAreaWidth;
           mediaBounds.height = mediaAreaHeight;
-          mediaBounds.top = navBarHeight + bannerAreaHeight();
+          mediaBounds.top = mediaAreaTop;
           mediaBounds.left = !isRTL ? sidebarSize : null;
           mediaBounds.right = isRTL ? sidebarSize : null;
           break;
@@ -610,7 +662,7 @@ const UnifiedLayout = (props) => {
     } else {
       mediaBounds.width = mediaAreaWidth;
       mediaBounds.height = mediaAreaHeight;
-      mediaBounds.top = navBarHeight + bannerAreaHeight();
+      mediaBounds.top = mediaAreaTop;
       mediaBounds.left = !isRTL ? sidebarSize : null;
       mediaBounds.right = isRTL ? sidebarSize : null;
     }
@@ -647,11 +699,15 @@ const UnifiedLayout = (props) => {
       sidebarContentWidth.width + sidebarContentAuxiliaryWidth.width,
     );
     const navbarBounds = calculatesNavbarBounds(mediaAreaBounds);
+    // The audio player is small enough to share the media area, so it asks for a band and the dock
+    // is measured in the area that is left, never underneath the player.
+    const mediaPlayerBand = calculatesMediaPlayerBand(mediaAreaBounds);
+    const mediaAreaBoundsWithoutBand = mediaPlayerBand.area;
     const actionbarBounds = calculatesActionbarBounds(mediaAreaBounds);
     const cameraDockBounds = calculatesCameraDockBounds(
       sidebarNavWidth.horizontalSpaceOccupied,
       sidebarContentWidth.width + sidebarContentAuxiliaryWidth.width,
-      mediaAreaBounds,
+      mediaAreaBoundsWithoutBand,
     );
     const dropZoneAreas = calculatesDropAreas(
       sidebarNavWidth.horizontalSpaceOccupied,
@@ -708,6 +764,11 @@ const UnifiedLayout = (props) => {
         tabOrder: DEFAULT_VALUES.actionBarTabOrder,
         zIndex: actionbarBounds.zIndex,
       },
+    });
+
+    layoutContextDispatch({
+      type: ACTIONS.SET_MEDIA_PLAYER_OUTPUT,
+      value: mediaPlayerBand.band,
     });
 
     layoutContextDispatch({

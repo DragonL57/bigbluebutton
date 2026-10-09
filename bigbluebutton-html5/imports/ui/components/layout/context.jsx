@@ -1647,6 +1647,59 @@ const reducer = (state, action) => {
       };
     }
 
+    case ACTIONS.SET_MEDIA_PLAYER_INPUT: {
+      const { hasMediaPlayer, height, position } = action.value;
+      const { mediaPlayer } = state.input;
+      if (mediaPlayer.hasMediaPlayer === hasMediaPlayer
+        && mediaPlayer.height === height
+        && mediaPlayer.position === position) {
+        return state;
+      }
+      return {
+        ...state,
+        input: {
+          ...state.input,
+          mediaPlayer: {
+            ...mediaPlayer,
+            hasMediaPlayer,
+            height,
+            position,
+          },
+        },
+      };
+    }
+
+    case ACTIONS.SET_MEDIA_PLAYER_OUTPUT: {
+      const {
+        display, width, height, top, left, right, zIndex,
+      } = action.value;
+      const { mediaPlayer } = state.output;
+      if (mediaPlayer.display === display
+        && mediaPlayer.width === width
+        && mediaPlayer.height === height
+        && mediaPlayer.top === top
+        && mediaPlayer.left === left
+        && mediaPlayer.right === right) {
+        return state;
+      }
+      return {
+        ...state,
+        output: {
+          ...state.output,
+          mediaPlayer: {
+            ...mediaPlayer,
+            display,
+            width,
+            height,
+            top,
+            left,
+            right,
+            zIndex,
+          },
+        },
+      };
+    }
+
     case ACTIONS.SET_GENERIC_CONTENT_OUTPUT: {
       const {
         width,

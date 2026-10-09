@@ -23,6 +23,9 @@ import {
 } from '/imports/ui/components/presentation/mutations';
 import useDeduplicatedSubscription from '/imports/ui/core/hooks/useDeduplicatedSubscription';
 import usePresentationFitToWidth from '/imports/ui/components/presentation/hooks/usePresentationFitToWidth';
+import { MEDIA_FILE_STOP } from '/imports/ui/components/media-file-player/mutations';
+import { layoutSelectInput } from '/imports/ui/components/layout/context';
+import { MEDIA_FILE_GENERIC_CONTENT_ID } from '/imports/ui/components/media-file-player/service';
 
 const PresentationUploaderContainer = (props) => {
   const {
@@ -34,6 +37,13 @@ const PresentationUploaderContainer = (props) => {
   const currentPresentation = presentations.find((p) => p.current)?.presentationId || '';
   // eslint-disable-next-line no-unused-vars
   const [_, setPresentationFitToWidth] = usePresentationFitToWidth();
+
+  // Sharing a presentation is how the presenter asks for the slides back. A shared file owns the
+  // media area while it plays, so the file yields first and the slides come up after it.
+  const genericMainContent = layoutSelectInput((i) => i.genericMainContent);
+  const isVideoSharing = genericMainContent.genericContentId === MEDIA_FILE_GENERIC_CONTENT_ID;
+  const [mediaFileStop] = useMutation(MEDIA_FILE_STOP);
+  const stopMediaFileSharing = () => mediaFileStop();
 
   const [presentationSetDownloadable] = useMutation(PRESENTATION_SET_DOWNLOADABLE);
   const [presentationExport] = useMutation(PRESENTATION_EXPORT);
@@ -106,6 +116,8 @@ const PresentationUploaderContainer = (props) => {
         dispatchDisableDownloadable={Service.dispatchDisableDownloadable}
         dispatchEnableDownloadable={Service.dispatchEnableDownloadable}
         onActionCompleted={onActionCompleted}
+        isVideoSharing={isVideoSharing}
+        stopMediaFileSharing={stopMediaFileSharing}
         {...restProps}
       />
     </ErrorBoundary>
