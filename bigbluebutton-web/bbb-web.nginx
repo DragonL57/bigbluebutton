@@ -40,6 +40,92 @@ location ~ "^\/bigbluebutton\/presentation\/(?<prestoken>[a-zA-Z0-9_-]+)/upload$
 	auth_request_set $file_too_large_header $upstream_http_x_file_too_large;
 }
 
+# Media file upload (fork feature). Same pre-check shape as the presentation upload:
+# bbb-web refuses an oversized body before nginx loads it.
+location ~ "^\/bigbluebutton\/media\/(?<mediatoken>[a-zA-Z0-9_-]+)/upload$" {
+	proxy_http_version 1.1;
+	proxy_pass         http://127.0.0.1:8090;
+	proxy_redirect     default;
+	proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+
+	# Workaround IE refusal to set cookies in iframe
+	add_header         P3P 'CP="No P3P policy available"';
+
+	# bbb-web refuses an oversized body before nginx loads it, and this cap is the backstop for a
+	# request that declares nothing. It follows maxMediaFileUpload in bigbluebutton.properties (50 MB), with room for the multipart envelope.
+	client_max_body_size       50m;
+	client_body_buffer_size    128k;
+
+	proxy_connect_timeout      90;
+	proxy_send_timeout         90;
+	proxy_read_timeout         90;
+
+	proxy_buffer_size          4k;
+	proxy_buffers              4 32k;
+	proxy_busy_buffers_size    64k;
+	proxy_temp_file_write_size 64k;
+
+	proxy_request_buffering off;
+
+	# Send a sub-request to allow bbb-web to refuse before loading
+	# If file is larger than configured bbb-web will return with code 403 and Header: x-file-too-large = 1
+	auth_request /bigbluebutton/media/checkMedia;
+	error_page 403 = @error403;
+	auth_request_set $file_too_large_header $upstream_http_x_file_too_large;
+}
+
+# Playback of an uploaded media file. bbb-web only authorizes the request; nginx
+# serves the bytes with alias so Range requests (presenter seeking) are answered by
+# nginx and a 50 MB file never passes through the servlet container.
+# mediaDir is /var/bigbluebutton/media by default (bigbluebutton.properties mediaDir).
+location ~ "^\/bigbluebutton\/media\/(?<media_meeting>[a-z0-9-]+)\/(?<media_id>[a-z0-9-]+)\/(?<media_name>[^/]+)\.(?<media_ext>[A-Za-z0-9]+)$" {
+	auth_request /bigbluebutton/media/checkAuthorization;
+
+	# The name on disk is derived from mediaFileId; the name in the URL only carries
+	# the extension so the browser can pick its player.
+	alias /var/bigbluebutton/media/$media_meeting/$media_meeting/$media_id/$media_id.$media_ext;
+
+	types {
+		audio/mpeg                    mp3;
+		audio/mp4                     m4a;
+		audio/aac                     aac;
+		audio/ogg                     ogg;
+		audio/wav                     wav;
+		video/webm                    webm;
+		video/mp4                     mp4;
+	}
+}
+
+location = /bigbluebutton/media/checkMedia {
+	internal;
+	proxy_http_version 1.1;
+	proxy_pass         http://127.0.0.1:8090;
+	proxy_redirect     default;
+	proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+
+	proxy_set_header   X-Media-Token $mediatoken;
+	proxy_set_header   X-Original-URI $request_uri;
+	proxy_set_header   Content-Length "";
+	proxy_set_header   X-Original-Content-Length $http_content_length;
+	proxy_set_header   X-Original-Method $request_method;
+
+	# high limit for media as bbb-web will reject upload if larger than configured
+	client_max_body_size       1000m;
+	client_body_buffer_size    128k;
+
+	proxy_pass_request_body off;
+	proxy_request_buffering off;
+}
+
+location = /bigbluebutton/media/checkAuthorization {
+	internal;
+	proxy_http_version       1.1;
+	proxy_pass               http://127.0.0.1:8090;
+	proxy_pass_request_body  off;
+	proxy_set_header         Content-Length "";
+	proxy_set_header         X-Original-URI $request_uri;
+}
+
 location /bigbluebutton/presentation/download {
 	return 404;
 }

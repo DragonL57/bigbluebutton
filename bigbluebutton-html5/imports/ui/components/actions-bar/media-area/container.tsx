@@ -81,6 +81,9 @@ const MediaAreaContainer = (props: MediaAreaContainerProps) => {
   }, [setPresenterRequest]);
 
   const isPresentationEnabled = useIsPresentationEnabled();
+  // The settings block only exists once settings.yml carries it, and this client may
+  // run against an older config, so read it defensively.
+  const isMediaFileEnabled = window.meetingClientSettings.public.mediaFile?.enabled ?? false;
   const isCameraAsContentEnabled = useIsCameraAsContentEnabled();
 
   return (
@@ -89,6 +92,7 @@ const MediaAreaContainer = (props: MediaAreaContainerProps) => {
       isRTL={isRTL}
       mediaAreaItems={mediaAreaItems}
       isCameraAsContentEnabled={isCameraAsContentEnabled}
+      isMediaFileEnabled={isMediaFileEnabled}
       hasCameraAsContent={hasCameraAsContent}
       handleRequestPresenter={handleRequestPresenter}
       handleTakePresenter={handleTakePresenter}

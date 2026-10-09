@@ -120,6 +120,11 @@ export const INITIAL_INPUT_STATE = {
     browserWidth: 0,
     browserHeight: 0,
   },
+  mediaPlayer: {
+    hasMediaPlayer: false,
+    height: 0,
+    position: 'bottom',
+  },
   sharedNotes: {
     isPinned: false,
     width: 0,
@@ -280,6 +285,14 @@ export const INITIAL_OUTPUT_STATE = {
     top: 0,
     left: 0,
     tabOrder: 0,
+    zIndex: 1,
+  },
+  mediaPlayer: {
+    display: false,
+    width: 0,
+    height: 0,
+    top: 0,
+    left: 0,
     zIndex: 1,
   },
   genericMainContent: {

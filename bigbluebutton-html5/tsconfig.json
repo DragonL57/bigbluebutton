@@ -26,12 +26,15 @@
     "noFallthroughCasesInSwitch": false,
 
     /* Module Resolution Options */
-    "baseUrl": ".",
+    /* Paths are resolved against this file, so baseUrl is not needed and is removed in
+       TypeScript 7. Bare specifiers need their own entry for the same reason. */
     "paths": {
       /* Support absolute /imports/* with a leading '/' */
-      "/*": ["*"],
+      "/*": ["./*"],
       "/imports/": ["./imports/*"],
-      "/client/": ["./client/*"]
+      "/client/": ["./client/*"],
+      "imports/*": ["./imports/*"],
+      "client/*": ["./client/*"]
     },
     "moduleResolution": "bundler",
     "esModuleInterop": true,
