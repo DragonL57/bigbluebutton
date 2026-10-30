@@ -214,6 +214,7 @@ redis_host = props['redis_host']
 redis_port = props['redis_port']
 redis_password = props['redis_password']
 presentation_dir = props['raw_presentation_src']
+media_dir = props['raw_media_src']
 kurento_video_dir = props['kurento_video_src']
 kurento_screenshare_dir = props['kurento_screenshare_src']
 mediasoup_video_dir = props['mediasoup_video_src']
@@ -245,6 +246,8 @@ archive_audio(meeting_id, audio_dir, raw_archive_dir)
 archive_notes(meeting_id, bn_notes_endpoint, notes_formats, raw_archive_dir)
 # Presentation files
 archive_directory("#{presentation_dir}/#{meeting_id}/#{meeting_id}", "#{target_dir}/presentation")
+# Media files the room played (one directory per file, so the file id names it)
+archive_directory("#{media_dir}/#{meeting_id}/#{meeting_id}", "#{target_dir}/media")
 # Learning Analytics Dashboard JSON file
 base_id = meeting_id.split('-').first
 if (src = Dir["/var/bigbluebutton/learning-dashboard/#{base_id}-*/**/learning_dashboard_data.json"].first)
@@ -280,6 +283,8 @@ if break_timestamp.nil?
   FileUtils.rm_rf("#{webrtc_recorder_screenshare_dir}/#{meeting_id}")
   FileUtils.rm_rf("#{webrtc_recorder_video_dir}/#{meeting_id}")
   FileUtils.rm_rf("#{webrtc_recorder_audio_dir}/#{meeting_id}")
+  # Uploaded media files are copied into the archive as they are, so the source goes now
+  FileUtils.rm_rf("#{media_dir}/#{meeting_id}")
 end
 
 if not archive_has_recording_marks?(meeting_id, raw_archive_dir, break_timestamp)
