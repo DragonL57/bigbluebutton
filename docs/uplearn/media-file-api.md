@@ -290,18 +290,19 @@ meeting, so a published recording cannot fetch it.
 
 | Item | Contract |
 |---|---|
-| Record events (proposed) | `StartMediaFileRecordEvent` carrying `mediaFileId` and `originalFilename`, `StopMediaFileRecordEvent`; registered in `akka-bbb-apps/.../record/events/` and written by `RedisRecorderActor` beside the external video cases at line 146 |
-| Archive | `raw_media_src: /var/bigbluebutton/media` added to `record-and-playback/core/scripts/bigbluebutton.yml` next to `raw_presentation_src` at line 9, and copied into the raw archive by `record-and-playback/core/scripts/archive/archive.rb` where the other source dirs are handled at lines 209 to 226 |
-| Published data (proposed) | `media_files.json` in the published package, written by `record-and-playback/presentation/scripts/publish/presentation.rb` beside `process_external_video_events` at line 1274: a list of `{ timestamp, mediaFileId, filename, duration }`, sorted by timestamp |
-| Published bytes (proposed) | the file copied into the published package under `presentation/<meetingId>/media/<filename>` |
-| Playback (proposed) | `bbb-playback` reads `media_files.json` in `src/utils/builder.js` beside the `config.videos` case at line 538, adds `media: 'media_files.json'` to `src/config.js`, and plays the file in the presentation area between its start and stop timestamps |
-| Retention | the file stays in `mediaDir` until archiving finishes, then is deleted the way `delete_audio` removes raw audio in `archive.rb:109`. When the meeting has recording disabled, the file is deleted at the end of the meeting |
+| Record events | `StartMediaPlayerRecordEvent` (`mediaFileId`), `UpdateMediaPlayerRecordEvent` (`status`, `rate`, `time`, `state`) and `StopMediaPlayerRecordEvent`, module `MEDIA-FILE`, in `akka-bbb-apps/.../record/events/MediaPlayerRecordEvent.scala` and written by `RedisRecorderActor` |
+| Segments | `BigBlueButton::Events.get_start_and_stop_media_file_events` in `core/lib/recordandplayback/generators/events.rb` turns the events into `{ start_timestamp, stop_timestamp, media_file_id, updates }`. A file the meeting ended on has no Stop event and runs to the last event |
+| Archive | `raw_media_src: /var/bigbluebutton/media` in `core/scripts/bigbluebutton.yml`, copied to `<raw>/<meetingId>/media/<mediaFileId>/` by `core/scripts/archive/archive.rb`, and the source deleted after the last segment is archived, the way `delete_audio` handles raw audio |
+| Published data | `media_files.json` at the root of the published package, written by `process_media_file_events` in `presentation/scripts/publish/presentation.rb`: one entry per played file, `{ timestamp, stopTimestamp, mediaFileId, filename, path, duration, updates }`, timestamps in seconds relative to the recording start, `duration` from ffprobe instead of the browser |
+| Published bytes | the file copied to `<published>/presentation/<meetingId>/media/<mediaFileId>.<ext>`; `path` in the entry is relative to the recording root |
+| Playback | implemented in the `bbb-playback` fork (`uplearn-media-file`, see `upstream-patches.md`): the recording clock stays the master, and the media element follows it. The entry active at the current time is the last one whose `timestamp` is reached and whose `stopTimestamp` is not; its position comes from the last update, advanced by (`time` - `timestamp`) * `rate` while that update says `play`. The element plays or pauses accordingly, and its `currentTime` is pulled back when it drifts more than 0.5 s, which is what reproduces a pause or a jump inside the file |
+| Retention | a recorded meeting keeps its files until archiving finishes and then loses them with the source directory; a meeting without recording loses `mediaDir/<internalMeetingId>` at meeting end in `MeetingService.processMediaFileCleanup` |
 
 `bbb-playback` is a separate repository, pinned at tag `v5.4.7` by `bbb-playback.placeholder.sh:3`, and
 packaged by `build/packages-template/bbb-playback`. Phase 3 therefore spans two repositories and the
 deb packages that carry them: `bbb-apps-akka`, `bbb-common`, `bbb-web`, `bbb-html5`,
 `bbb-graphql-actions`, `bbb-graphql-server`, `bbb-record-core`, `bbb-playback-presentation`,
-`bbb-playback`.
+`bbb-playback`. Everything except the playback app is in this repository.
 
 ## Compatibility rules
 

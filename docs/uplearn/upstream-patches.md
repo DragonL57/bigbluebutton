@@ -61,6 +61,29 @@ disappears was dropped by a conflict resolution.
 | `bigbluebutton-web/grails-app/controllers/org/bigbluebutton/web/UrlMappings.groovy` | Media upload and check routes |
 | `bigbluebutton-web/grails-app/conf/spring/resources.xml` | `mediaDir` on the `meetingService` bean, so the shared meeting service can delete a removed file |
 
+## Second repository: bbb-playback
+
+The playback app is not part of this repository. `bbb-playback.placeholder.sh` clones a fork instead of
+the upstream tag, so a build of `bbb-playback` here carries the media file player.
+
+| Item | Value |
+|---|---|
+| Fork | `github.com/DragonL57/bbb-playback` |
+| Branch | `uplearn-media-file`, based on upstream tag `v5.4.8` |
+| Local clone | `/home/thelong/coding/bbb-playback` |
+
+Upstream files the branch edits: `src/config.js` (the `mediaFiles` file entry), `src/utils/constants.js`
+(`ID.MEDIA_FILES`), `src/utils/builder.js` (`buildMediaFiles`), `src/utils/data/index.js` (re-export),
+`src/utils/data/storage.js` (accessor and `built` flag), `src/utils/data/validators.js`
+(`getMostRecentEvent` export), `src/components/utils/hooks/index.js` (`useCurrentMediaFile`),
+`src/components/webcams/index.js` (a clock tick on play and pause), `src/components/player/index.js`
+(the overlay mount), `src/components/player/index.scss` (a positioning context), and the `en` and
+`vi_VN` locale files. Files it adds: `src/components/media-file/index.js`, `index.scss`,
+`src/utils/data/mediaFiles.js` and `mediaFiles.test.js`.
+
+A rebase onto a newer tag re-runs `git apply` of the branch patch and then
+`CI=true npx react-scripts test --watchAll=false src/utils/data/mediaFiles.test.js`, plus a build.
+
 ## Deliberately left as upstream
 
 No file under `components/presentation` is edited by this fork. A toolbar width fix was measured,
