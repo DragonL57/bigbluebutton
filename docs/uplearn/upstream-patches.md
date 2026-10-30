@@ -11,7 +11,7 @@ because they cannot conflict; the added media file code is described in `media-f
 |---|---|
 | Fork | `github.com/DragonL57/bigbluebutton` |
 | Integration branch | `local-dev`, tracks `upstream/v4.1.x-develop` |
-| Base commit | `1f354dacfda5b2dfca1126c6f6af15d2180a81b4` (version file `4.1.0-alpha.1`, 2026-10-06) |
+| Base commit | `9fffe59753` (2026-10-26, `publiccode.yml` `v4.1.0-alpha.1`); rebased 2026-10-30, was `1f354dacfd` (2026-10-06) |
 | 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release` at `0a2ccd43` (tag `v4.0.0-rc.5`) |
 | Local clone | `/home/thelong/coding/bigbluebutton` |
 
