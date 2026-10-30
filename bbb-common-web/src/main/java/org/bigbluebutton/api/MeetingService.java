@@ -1075,6 +1075,34 @@ public class MeetingService implements MessageListener {
 
     org.bigbluebutton.presentation.Util.deleteDirectoryFromFileHandlingErrors(storedFiles[0]);
   }
+  /**
+   * Uploaded media files are not presentations: nothing outside the meeting reads them, so the
+   * meeting's directory under mediaDir goes away when the meeting ends. A meeting that is being
+   * recorded keeps its files, because record-and-playback copies them into the recording and
+   * deletes the source once that is done, the way it deletes raw audio.
+   */
+  private void processMediaFileCleanup(Meeting m) {
+    if (mediaDir == null || mediaDir.isEmpty()) {
+      return;
+    }
+
+    if (m.isRecord()) {
+      return;
+    }
+
+    File meetingMediaDir = new File(mediaDir, m.getInternalId());
+    if (!meetingMediaDir.exists()) {
+      return;
+    }
+
+    try {
+      org.bigbluebutton.presentation.Util.deleteDirectory(meetingMediaDir);
+      log.info("Removed the media files of the ended meeting {}", m.getInternalId());
+    } catch (Exception e) {
+      log.error("Could not remove the media files of the ended meeting {}", m.getInternalId(), e);
+    }
+  }
+
   public void addUserCustomData(String meetingId, String userID,
                                 Map<String, String> userCustomData) {
     Meeting m = getMeeting(meetingId);
@@ -1238,6 +1266,8 @@ public class MeetingService implements MessageListener {
         meetingIdsToClean.addAll(m.getBreakoutRoomsInternalIds());
         learningDashboardService.removeJsonDataFiles(meetingIdsToClean, m.getLearningDashboardCleanupDelayInMinutes());
       }
+
+      processMediaFileCleanup(m);
 
       processRemoveEndedMeeting(message);
     }
