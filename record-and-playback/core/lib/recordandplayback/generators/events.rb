@@ -1098,6 +1098,66 @@ module BigBlueButton
       external_video_events.sort_by {|a| a[:timestamp]}
     end
 
+    # Segments where the room played an uploaded media file (fork feature). A Start carries the
+    # file, an Update carries the playback position, so a pause or a seek inside a segment stays
+    # visible to the recording, and a Stop closes the segment. A Start without a Stop runs to the
+    # end of the meeting.
+    def self.get_start_and_stop_media_file_events(events_xml)
+      BigBlueButton.logger.info "Getting start and stop media file events"
+
+      media_events = []
+      events_xml.xpath("recording/event[@eventname='StartMediaPlayerRecordEvent']").each do |event|
+        media_events << {
+          :timestamp => event['timestamp'].to_i,
+          :media_file_id => event.at_xpath("mediaFileId").text
+        }
+      end
+      events_xml.xpath("recording/event[@eventname='UpdateMediaPlayerRecordEvent']").each do |event|
+        media_events << {
+          :timestamp => event['timestamp'].to_i,
+          :update => {
+            :time => event.at_xpath("time") ? event.at_xpath("time").text.to_f : 0.0,
+            :status => event.at_xpath("status") ? event.at_xpath("status").text : '',
+            :rate => event.at_xpath("rate") ? event.at_xpath("rate").text.to_f : 1.0
+          }
+        }
+      end
+      events_xml.xpath("recording/event[@eventname='StopMediaPlayerRecordEvent']").each do |event|
+        media_events << { :timestamp => event['timestamp'].to_i, :stop => true }
+      end
+
+      segments = []
+      current = nil
+      media_events.sort_by { |a| a[:timestamp] }.each do |event|
+        if event.key?(:media_file_id)
+          current = {
+            :start_timestamp => event[:timestamp],
+            :stop_timestamp => event[:timestamp],
+            :media_file_id => event[:media_file_id],
+            :updates => []
+          }
+          segments << current
+        elsif current.nil?
+          next
+        elsif event.key?(:stop)
+          current[:stop_timestamp] = event[:timestamp]
+          current[:closed] = true
+          current = nil
+        else
+          current[:stop_timestamp] = event[:timestamp]
+          current[:updates] << event[:update].merge(:timestamp => event[:timestamp])
+        end
+      end
+
+      # A file the meeting ended on has no Stop event, so the segment runs to the last event.
+      segments.each do |segment|
+        segment[:stop_timestamp] = BigBlueButton::Events.last_event_timestamp(events_xml) unless segment[:closed]
+        segment.delete(:closed)
+      end
+
+      segments
+    end
+
     # Match recording start and stop events
     def self.match_start_and_stop_rec_events(rec_events)
       BigBlueButton.logger.info ("Matching record events")

@@ -1322,6 +1322,83 @@ def process_external_video_events(_events, package_dir)
   generate_json_file(package_dir, 'external_videos.json', external_videos)
 end
 
+# The duration of an uploaded media file, in seconds. ffprobe is the same tool the recording
+# pipeline already uses to inspect media, and it is the only reliable way to know how long the
+# file is: the client reports it, but the recording cannot trust a value the browser sent.
+def media_file_duration(path)
+  out = IO.popen(
+    ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+     '-of', 'default=noprint_wrappers=1:nokey=1', path],
+    &:read
+  )
+  out.to_f.round(2)
+rescue StandardError => e
+  BigBlueButton.logger.warn("Could not read the duration of #{File.basename(path)}: #{e.message}")
+  0
+end
+
+# Uploaded media files the room played, with the segment each one belongs to. The bytes are
+# copied into the published package because the serving URL carries a token that expires with
+# the meeting: a published recording can only read what is inside the package.
+def process_media_file_events(_events, package_dir)
+  BigBlueButton.logger.info('Processing media file events')
+
+  raw_media_dir = "#{@recording_dir}/raw/#{@meeting_id}/media"
+  published_media_dir = "#{package_dir}/media"
+  published_sources = {}
+  durations = {}
+  media_files = []
+
+  BigBlueButton::Events.get_start_and_stop_media_file_events(@doc).each do |segment|
+    media_file_id = segment[:media_file_id]
+    start_timestamp = segment[:start_timestamp]
+
+    inside_recording = @rec_events.any? do |re|
+      ((start_timestamp >= re[:start_timestamp]) && (start_timestamp <= re[:stop_timestamp])) ||
+        ((start_timestamp < re[:start_timestamp]) && (re[:stop_timestamp] >= re[:start_timestamp]))
+    end
+    next unless inside_recording
+
+    # The bytes are published once, but every play of the file gets its own entry: a file played
+    # twice in a meeting is two windows with two update trails over the same file.
+    unless published_sources.key?(media_file_id)
+      source = Dir.glob("#{raw_media_dir}/#{media_file_id}/#{media_file_id}.*").first
+      if source.nil?
+        BigBlueButton.logger.warn("Media file #{media_file_id} was played but is not in the archive")
+        next
+      end
+
+      FileUtils.mkdir_p(published_media_dir)
+      FileUtils.cp(source, "#{published_media_dir}/#{File.basename(source)}")
+      published_sources[media_file_id] = File.basename(source)
+      durations[media_file_id] = media_file_duration(source)
+    end
+
+    filename = published_sources[media_file_id]
+
+    media_files << {
+      timestamp: (translate_timestamp(start_timestamp) / 1000).to_i,
+      stopTimestamp: (translate_timestamp(segment[:stop_timestamp]) / 1000).to_i,
+      mediaFileId: media_file_id,
+      filename: filename,
+      path: "media/#{filename}",
+      duration: durations[media_file_id],
+      updates: segment[:updates].map do |update|
+        {
+          timestamp: (translate_timestamp(update[:timestamp]) / 1000).to_i,
+          time: update[:time],
+          status: update[:status],
+          rate: update[:rate]
+        }
+      end
+    }
+  end
+
+  media_files.sort_by! { |media_file| media_file[:timestamp] }
+
+  generate_json_file(package_dir, 'media_files.json', media_files)
+end
+
 def generate_done_or_fail_file(success)
   File.write(
     "#{@recording_dir}/status/published/#{@meeting_id}-presentation#{success ? '.done' : '.fail'}",
@@ -1527,6 +1604,8 @@ begin
         process_poll_events(@doc, package_dir)
 
         process_external_video_events(@doc, package_dir)
+
+        process_media_file_events(@doc, package_dir)
 
         # Write deskshare.xml to file
         File.open("#{package_dir}/#{@deskshare_xml_filename}", 'w') { |f| f.puts @deskshare_xml.target! }
