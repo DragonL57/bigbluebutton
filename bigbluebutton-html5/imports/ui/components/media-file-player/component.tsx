@@ -185,6 +185,10 @@ const MediaFilePlayer: React.FC<MediaFilePlayerProps> = ({
 }) => {
   const intl = useIntl();
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
+  // The element is created after the first render, and the effects below have to run once it is
+  // there: the state form makes them run again on attach, where the ref alone left them doing
+  // nothing and the player frozen for anyone who joined after the file started.
+  const [attachedMedia, setAttachedMedia] = useState<HTMLVideoElement | HTMLAudioElement | null>(null);
   const lastSeekReportRef = useRef(0);
   // The presenter leads its own element for each file, so the room state that arrives back from
   // akka does not fight the local controls. Keyed on the file: a switch to the next file has to
@@ -239,12 +243,13 @@ const MediaFilePlayer: React.FC<MediaFilePlayerProps> = ({
   // reattach the element on every render.
   const setMediaRef = useCallback((element: HTMLVideoElement | HTMLAudioElement | null) => {
     mediaRef.current = element;
+    setAttachedMedia(element);
   }, []);
 
   // The room state decides where the playback is, for viewers on every change and for
   // the presenter on the first one (a presenter that refreshed must catch up too).
   useEffect(() => {
-    const element = mediaRef.current;
+    const element = attachedMedia;
     if (!element) return;
     if (isPresenter && presenterSyncedRef.current === mediaPlayer.mediaFileId) return;
 
@@ -254,23 +259,26 @@ const MediaFilePlayer: React.FC<MediaFilePlayerProps> = ({
     }
     element.playbackRate = mediaPlayer.playerPlaybackRate || 1;
     presenterSyncedRef.current = mediaPlayer.mediaFileId;
-  }, [mediaPlayer.updatedAt, mediaPlayer.mediaFileId]);
+  }, [attachedMedia, mediaPlayer.updatedAt, mediaPlayer.mediaFileId]);
 
   useEffect(() => {
-    const element = mediaRef.current;
+    const element = attachedMedia;
     if (!element) return;
     element.playbackRate = mediaPlayer.playerPlaybackRate || 1;
 
-    // The presenter's own element follows the room's play state too: starting a file from the
-    // sharing list must play here as well, and re-applying the state a click produced is a no-op.
-    if (mediaPlayer.playerPlaying) {
-      // A viewer's browser may refuse to start audio without a gesture, which is why
-      // the overlay exists.
-      element.play().catch(() => setBlocked(true));
-    } else {
+    // The room decides whether the element runs, and a paused element has to be started here: a
+    // viewer that joined late, or whose browser refused the first attempt, would otherwise stay
+    // frozen with a disabled control and no way to ask for playback.
+    if (!mediaPlayer.playerPlaying) {
       element.pause();
+      return;
     }
-  }, [mediaPlayer.playerPlaying, mediaPlayer.mediaFileId]);
+    // An element that is already running needs nothing from the room.
+    if (!element.paused) return;
+    // A viewer's browser may refuse to start audio without a gesture, which is why the overlay
+    // exists: the rejection is what puts it on screen.
+    element.play().catch(() => setBlocked(true));
+  }, [attachedMedia, mediaPlayer.playerPlaying, mediaPlayer.mediaFileId, mediaPlayer.updatedAt]);
 
   // Volume and mute are the one part of playback the room does not share: every client
   // keeps its own level, and only the presenter's play, pause and seek travel.
@@ -279,7 +287,7 @@ const MediaFilePlayer: React.FC<MediaFilePlayerProps> = ({
     if (!element) return;
     element.volume = volume;
     element.muted = muted;
-  }, [volume, muted, duration]);
+  }, [attachedMedia, volume, muted, duration]);
 
   // The row is the source of truth for the size, so the override goes away as soon as the row
   // carries the value the presenter clicked.
