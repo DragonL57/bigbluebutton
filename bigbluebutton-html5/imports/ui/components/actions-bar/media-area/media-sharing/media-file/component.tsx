@@ -15,6 +15,10 @@ import { uploadMediaFile } from './service';
 import { removeMediaFileMutation, startMediaFileMutation } from './mutation';
 import { getMediaFiles } from './queries';
 
+// A coarse pointer is a touch-first device, which has no drag and drop: offering it there is a
+// hint for a gesture the user cannot make.
+const CAN_DROP_FILES = !window.matchMedia('(pointer: coarse)').matches;
+
 interface MediaFileViewProps {
   intl: IntlShape;
   onActionCompleted: () => void;
@@ -125,6 +129,11 @@ const MediaFileView: React.FC<MediaFileViewProps> = ({ intl, onActionCompleted }
     size: formatBytes(uploadSizeMax),
   });
 
+  // The selected size and the drop hint share one line, and a touch device gets neither the hint
+  // nor an empty row.
+  const sizeOrDropHint = selectedFile
+    ? formatBytes(selectedFile.size)
+    : CAN_DROP_FILES && intl.formatMessage(intlMessages.dropHint);
   const extensionOf = (filename: string) => {
     const dot = filename.lastIndexOf('.');
     return dot >= 0 ? filename.slice(dot).toLowerCase() : '';
@@ -204,9 +213,9 @@ const MediaFileView: React.FC<MediaFileViewProps> = ({ intl, onActionCompleted }
         {selectedFile
           ? <Styled.FileName>{selectedFile.name}</Styled.FileName>
           : <Styled.FileName>{intl.formatMessage(intlMessages.chooseFile)}</Styled.FileName>}
-        <Styled.LimitsText>
-          {selectedFile ? formatBytes(selectedFile.size) : intl.formatMessage(intlMessages.dropHint)}
-        </Styled.LimitsText>
+        {sizeOrDropHint && (
+          <Styled.LimitsText>{sizeOrDropHint}</Styled.LimitsText>
+        )}
         <Styled.LimitsText>{limitsText}</Styled.LimitsText>
       </Styled.UploadArea>
 
