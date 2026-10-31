@@ -12,7 +12,7 @@ operation. `upstream-patches.md` lists the upstream files the fork edits.
 | Upstream | `github.com/bigbluebutton/bigbluebutton` |
 | Integration branch | `local-dev`, tracks `upstream/v4.1.x-develop` |
 | Base commit | `a1991b9c01` (2026-10-30, `4.1.0-alpha.1`); rebased 2026-10-31, was `9fffe59753`, before that `1f354dacfd` (2026-10-06) |
-| Ticket | `UPL-126`, every commit on the branch carries it |
+| Tickets | `UPL-126` for the media feature, `UPL-127` for packaging and the production rollout; every commit carries one of them |
 | 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release` at `0a2ccd43` (tag `v4.0.0-rc.5`, 2026-10-07) |
 | Local clone | `/home/thelong/coding/bigbluebutton` (partial clone, full history) |
 
@@ -26,8 +26,13 @@ was verified on 2026-10-31.
 Reasons: upstream has published no 4.1 release tag, but the 4.1 delta inside this feature's target
 areas is small (the media area, media sharing and app components, the layout engine and the external
 video player differ in thirteen files), and 4.1 builds on the same Ubuntu base as 4.0, so a later move
-to the 4.1 release tag is a merge rather than a port. Production still runs 4.0.0-rc.3 per the UpLearn
-project notes, and the Moodle `mod_bigbluebuttonbn` plugin pairs with the 4.0 line.
+to the 4.1 release tag is a merge rather than a port.
+
+Since 2026-10-31 this branch is what runs on `bbb.uplearn.vn`: 4.1.0-alpha.1 built from `cb38d7e30e`,
+installed in place over the 4.0.0-rc.3 that was there before. `in-place-upgrade.md` records that
+operation, and `deployment.md` records how a bundle is built and shipped. The Moodle
+`mod_bigbluebuttonbn` plugin needed no change, because the shared secret in `bbb-web.properties`
+survived the upgrade.
 
 ## Documents
 
