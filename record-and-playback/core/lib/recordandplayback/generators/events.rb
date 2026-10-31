@@ -1118,7 +1118,10 @@ module BigBlueButton
           :update => {
             :time => event.at_xpath("time") ? event.at_xpath("time").text.to_f : 0.0,
             :status => event.at_xpath("status") ? event.at_xpath("status").text : '',
-            :rate => event.at_xpath("rate") ? event.at_xpath("rate").text.to_f : 1.0
+            :rate => event.at_xpath("rate") ? event.at_xpath("rate").text.to_f : 1.0,
+            # Whether the player was running at that instant. A seek carries status "seek" while the
+            # player keeps going, so the label alone cannot decide it.
+            :state => event.at_xpath("state") ? event.at_xpath("state").text.to_i : nil
           }
         }
       end
