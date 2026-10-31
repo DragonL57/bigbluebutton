@@ -47,6 +47,10 @@ The settings in `/etc/bigbluebutton/bbb-html5.yml` (client title, footer, `custo
 `displayBrandingArea`) are a conffile and did survive, which is why the page kept the UpLearn title
 and theme CSS while the icon and header logo went back to stock.
 
+The UpLearn originals and the script that first applied them live in `/root/prod-rebrand`
+(`apply-prod-rebrand.sh`). Run only the three copy commands, not the script: its second half appends
+a branding block to `bbb-html5.yml`, and a second run duplicates it.
+
 Copy the three files back from `/root/prod-rebrand` after every upgrade of `bbb-config`:
 
 ```bash
@@ -68,6 +72,27 @@ apt-mark hold bbb-apps-akka bbb-web bbb-html5 bbb-graphql-server bbb-graphql-act
 bbb-conf --restart
 bbb-conf --check
 ```
+
+## State after the upgrade
+
+Written down on 2026-10-31, after the checks below passed.
+
+| Item | Value |
+|---|---|
+| Release | `BIGBLUEBUTTON_RELEASE=4.1.0-alpha.1` |
+| Packages | 22 `bbb-*` at `2:4.1.0~alpha.1+20261031T044222-git.local-build-cb38d7e30e`, plus `bbb-presentation-video 5.1.0~rc4` from the 4.0 install |
+| Held | `bbb-apps-akka`, `bbb-web`, `bbb-html5`, `bbb-graphql-server`, `bbb-graphql-actions`, `bbb-record-core`, `bbb-playback-presentation`, `bbb-playback` |
+| Services | thirteen active, `systemctl --failed` empty |
+| Disabled | `bbb-transcription-controller`, a package new in 4.1. Its service cannot reach the FreeSWITCH event socket, and transcription is not used here, so the unit is disabled and the package stays installed |
+| Shared secret | unchanged, sha1 `95a96ec2724e` before and after |
+| Recordings | `/var/bigbluebutton` still 12 GB, a 4.0-era and a fresh recording both return 200 for the player page, `presentation_text.json` and `shapes.svg` |
+| Branding | `favicon.ico`, `images/logo.png` and `images/darklogo.png` copied back from `/root/prod-rebrand`; the `bbb-html5.yml` title, footer and style URL were never lost |
+| Disk left behind | `/root/bbb-uplearn-cb38d7e30e` 1.9 GB (bundle, checksum, `install.sh`, extracted debs) and `/root/bbb-revert-4.0.0-rc.3` 929 MB |
+
+Verified live on the upgraded server: a room created through the API, joined as moderator, a 1.5 MB
+mp3 uploaded through the Media Area, played, paused at 35.6 s and resumed. Ending the room logged
+`Removed the media files of the ended meeting ...` and left `/var/bigbluebutton/media` empty, which is
+the fork's cleanup path running on production.
 
 Two `bbb-conf --check` warnings are expected on this setup and harmless: the webhooks port warning
 compares the nginx upstream name against a config key that no longer means what the check assumes,
