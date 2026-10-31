@@ -11,7 +11,8 @@ because they cannot conflict; the added media file code is described in `media-f
 |---|---|
 | Fork | `github.com/DragonL57/bigbluebutton` |
 | Integration branch | `local-dev`, tracks `upstream/v4.1.x-develop` |
-| Base commit | `9fffe59753` (2026-10-26, `publiccode.yml` `v4.1.0-alpha.1`); rebased 2026-10-30, was `1f354dacfd` (2026-10-06) |
+| Base commit | `a1991b9c01` (2026-10-30); rebased 2026-10-31, was `9fffe59753` (2026-10-26), before that `1f354dacfd` (2026-10-06) |
+| Last rebase | 18 upstream commits, all in `docker/`, `.github/workflows/`, the Dockerfiles and the graphql middleware nginx template; none of them touch a path below, so the rebase applied without a conflict |
 | 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release` at `0a2ccd43` (tag `v4.0.0-rc.5`) |
 | Local clone | `/home/thelong/coding/bigbluebutton` |
 
@@ -60,6 +61,23 @@ disappears was dropped by a conflict resolution.
 | `bigbluebutton-web/grails-app/conf/bigbluebutton.properties` | `mediaDir`, `maxMediaFileUpload`, `mediaBaseURL` |
 | `bigbluebutton-web/grails-app/controllers/org/bigbluebutton/web/UrlMappings.groovy` | Media upload and check routes |
 | `bigbluebutton-web/grails-app/conf/spring/resources.xml` | `mediaDir` on the `meetingService` bean, so the shared meeting service can delete a removed file |
+
+## Recording pipeline
+
+Upstream files the fork edits so a recorded meeting publishes its media files.
+
+| Upstream file | Change |
+|---|---|
+| `record-and-playback/core/lib/recordandplayback/generators/events.rb` | `get_start_and_stop_media_file_events`, which turns the three media player record events into one segment per play, each with its updates |
+| `record-and-playback/core/scripts/bigbluebutton.yml` | `raw_media_src`, the directory archiving copies from |
+| `record-and-playback/core/scripts/archive/archive.rb` | Archives the meeting's media files into the raw archive and deletes the originals once that succeeds |
+| `record-and-playback/presentation/scripts/publish/presentation.rb` | `media_file_duration` and `process_media_file_events`: copies the files into the published package and writes `media_files.json` |
+
+## Build
+
+| Upstream file | Change |
+|---|---|
+| `bbb-playback.placeholder.sh` | Clones the fork branch instead of the upstream tag, see below |
 
 ## Second repository: bbb-playback
 
