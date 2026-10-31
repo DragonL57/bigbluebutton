@@ -93,6 +93,10 @@ material for the machine it installed onto.
 
 ## Install on the target
 
+The bundle unpacks to `artifacts/`, so `install.sh` is called with the directory that holds the debs,
+and the whole release directory is kept under `/root/bbb-uplearn-<sha>` on the target, next to the
+revert kit, until a real class has run on the new build.
+
 ```bash
 cd /tmp && tar xzf bbb-uplearn-<sha>.tgz
 dpkg -i artifacts/*.deb            # one invocation, so inter-package dependencies resolve
@@ -122,16 +126,26 @@ Install the previous tarball over the new one with `dpkg -i` and restart. When t
 the one being replaced, the cheaper rollback is to leave the old machine running and move the name
 back, which is why a cutover by hostname is worth the extra machine.
 
+On a server upgraded in place there is no previous tarball to go back to unless someone saved one.
+Production cannot: upstream pruned every 4.0.0-rc.3 file, so its kit holds a downloaded 4.0.2 set
+instead, plus the configuration tree and four database dumps. A disk snapshot from the hosting panel
+is the only exact revert for that machine.
+
 ## Version lines
 
-Production runs BigBlueButton 4.0.0-rc.3 (`bbb.uplearn.vn`, native install on `36.50.176.205`, the
-same VPS as the Moodle containers). The fork builds `4.1.0~alpha.1` from `v4.1.x-develop`.
+Until 2026-10-31 production ran BigBlueButton 4.0.0-rc.3 (`bbb.uplearn.vn`, native install on
+`36.50.176.205`, the same VPS as the Moodle containers). The fork builds `4.1.0~alpha.1` from
+`v4.1.x-develop`, and that is what the server runs now.
 
 Upstream supports moving forward inside one line by re-running the install script for that line, and
 does not support an in-place jump between lines: the documented route is a clean server plus a
 migration of the recordings (`docs.bigbluebutton.org/4.1/administration/install/`). Installing the
 fork's debs onto the 4.0 machine is therefore not a supported upgrade, and the eight packages cannot
 be dropped onto it one at a time.
+
+Production took that route anyway, once, as a whole set rather than in pieces: `in-place-upgrade.md`
+records what a revert kit has to hold, the four failures that stop the configure step, and the state
+the server ended in.
 
 ## What the target needs to provide
 
