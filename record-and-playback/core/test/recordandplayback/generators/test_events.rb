@@ -314,4 +314,119 @@ class TestEvents < Minitest::Test
     assert_equal(all[2, 2], visible_at.call(edl, 4500))
     assert_equal(all, visible_at.call(edl, 5500))
   end
+
+  # Fork feature. A presenter plays an uploaded audio or video file in the room; the Start names the
+  # file, an Update carries where the player was at that instant, and a Stop closes the segment.
+  def media_file_events(*events)
+    Nokogiri::XML(<<~XML)
+      <recording meeting_id="m-1">
+        #{events.join}
+      </recording>
+    XML
+  end
+
+  def media_start(timestamp, media_file_id)
+    <<~XML
+      <event timestamp="#{timestamp}" module="MEDIA" eventname="StartMediaPlayerRecordEvent">
+        <mediaFileId>#{media_file_id}</mediaFileId>
+      </event>
+    XML
+  end
+
+  def media_update(timestamp, time, status, state)
+    <<~XML
+      <event timestamp="#{timestamp}" module="MEDIA" eventname="UpdateMediaPlayerRecordEvent">
+        <time>#{time}</time><status>#{status}</status><rate>1</rate><state>#{state}</state>
+      </event>
+    XML
+  end
+
+  def media_stop(timestamp)
+    <<~XML
+      <event timestamp="#{timestamp}" module="MEDIA" eventname="StopMediaPlayerRecordEvent"/>
+    XML
+  end
+
+  def unrelated_event(timestamp)
+    <<~XML
+      <event timestamp="#{timestamp}" module="PARTICIPANT" eventname="EndAndKickAllEvent"/>
+    XML
+  end
+
+  def test_media_file_events_pause_then_resume
+    events = media_file_events(
+      media_start(1000, 'file-a'),
+      media_update(6000, '5.0', 'pause', 0),
+      media_update(7000, '5.0', 'play', 1),
+      media_stop(12000),
+      unrelated_event(20000)
+    )
+
+    segments = BigBlueButton::Events.get_start_and_stop_media_file_events(events)
+
+    assert_equal(1, segments.length)
+    assert_equal('file-a', segments[0][:media_file_id])
+    assert_equal(1000, segments[0][:start_timestamp])
+    # The Stop closes the window; the events after it do not stretch it.
+    assert_equal(12000, segments[0][:stop_timestamp])
+    assert_equal(%w[pause play], segments[0][:updates].map { |u| u[:status] })
+    assert_equal([0, 1], segments[0][:updates].map { |u| u[:state] })
+    assert_equal([5.0, 5.0], segments[0][:updates].map { |u| u[:time] })
+  end
+
+  def test_media_file_events_seek_carries_state_over_the_label
+    events = media_file_events(
+      media_start(1000, 'file-a'),
+      media_update(3000, '2.0', 'seek', 1),
+      media_stop(4000)
+    )
+
+    update = BigBlueButton::Events.get_start_and_stop_media_file_events(events)[0][:updates][0]
+
+    # A seek keeps the player running, so the label "seek" alone cannot decide whether it played.
+    assert_equal('seek', update[:status])
+    assert_equal(1, update[:state])
+  end
+
+  def test_media_file_events_meeting_ended_while_playing
+    events = media_file_events(
+      media_start(1000, 'file-a'),
+      media_update(5000, '4.0', 'play', 1),
+      unrelated_event(30000)
+    )
+
+    segments = BigBlueButton::Events.get_start_and_stop_media_file_events(events)
+
+    # No Stop: the file played until the last event of the meeting, not until the last Update.
+    assert_equal(30000, segments[0][:stop_timestamp])
+  end
+
+  def test_media_file_events_two_files_in_one_meeting
+    events = media_file_events(
+      media_start(1000, 'file-a'),
+      media_stop(10000),
+      media_start(20000, 'file-b'),
+      media_update(21000, '1.0', 'play', 1),
+      unrelated_event(30000)
+    )
+
+    segments = BigBlueButton::Events.get_start_and_stop_media_file_events(events)
+
+    assert_equal(%w[file-a file-b], segments.map { |s| s[:media_file_id] })
+    assert_equal([1000, 20000], segments.map { |s| s[:start_timestamp] })
+    assert_equal([10000, 30000], segments.map { |s| s[:stop_timestamp] })
+  end
+
+  def test_media_file_events_update_before_any_start_is_ignored
+    events = media_file_events(
+      media_update(500, '0.5', 'play', 1),
+      media_start(1000, 'file-a'),
+      unrelated_event(5000)
+    )
+
+    segments = BigBlueButton::Events.get_start_and_stop_media_file_events(events)
+
+    assert_equal(1, segments.length)
+    assert_empty(segments[0][:updates])
+  end
 end
