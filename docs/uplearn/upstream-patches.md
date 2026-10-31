@@ -72,6 +72,7 @@ Upstream files the fork edits so a recorded meeting publishes its media files.
 | `record-and-playback/core/scripts/bigbluebutton.yml` | `raw_media_src`, the directory archiving copies from |
 | `record-and-playback/core/scripts/archive/archive.rb` | Archives the meeting's media files into the raw archive and deletes the originals once that succeeds |
 | `record-and-playback/presentation/scripts/publish/presentation.rb` | `media_file_duration` and `process_media_file_events`: copies the files into the published package and writes `media_files.json` |
+| `record-and-playback/core/test/recordandplayback/generators/test_events.rb` | Five cases over the segment parser: pause then resume, a seek carrying `state` over the label, a meeting that ended while the file played, two files in one meeting, an update before any start |
 
 ## Build
 
