@@ -1388,7 +1388,8 @@ def process_media_file_events(_events, package_dir)
           timestamp: (translate_timestamp(update[:timestamp]) / 1000).to_i,
           time: update[:time],
           status: update[:status],
-          rate: update[:rate]
+          rate: update[:rate],
+          state: update[:state]
         }
       end
     }
