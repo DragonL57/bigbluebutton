@@ -100,6 +100,7 @@ const MediaFileView: React.FC<MediaFileViewProps> = ({ intl, onActionCompleted }
   } = mediaFileSettings();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -149,10 +150,32 @@ const MediaFileView: React.FC<MediaFileViewProps> = ({ intl, onActionCompleted }
     return null;
   };
 
-  const handleFileChosen = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
+  const chooseFile = (file: File | null) => {
     setErrorMessage(file ? validateFile(file) : null);
     setSelectedFile(file);
+  };
+
+  const handleFileChosen = (event: React.ChangeEvent<HTMLInputElement>) => {
+    chooseFile(event.target.files?.[0] ?? null);
+  };
+
+  // A dropped file takes the same path as a chosen one: it fills the selection, and the upload
+  // starts when the button is pressed. The accept list on the input does not filter a drop, so the
+  // validation runs on the file itself.
+  const handleDragOver = (event: React.DragEvent<HTMLLabelElement>) => {
+    if (uploading) return;
+    event.preventDefault();
+    setDragging(true);
+  };
+
+  const handleDragLeave = () => setDragging(false);
+
+  const handleDrop = (event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    if (uploading) return;
+    const file = event.dataTransfer.files?.[0] ?? null;
+    if (file) chooseFile(file);
   };
 
   // Removal deletes the row and the stored file, so the row goes from the list and a player
@@ -201,7 +224,14 @@ const MediaFileView: React.FC<MediaFileViewProps> = ({ intl, onActionCompleted }
 
   return (
     <Styled.Container>
-      <Styled.UploadArea aria-disabled={uploading} data-test="mediaFileDropArea">
+      <Styled.UploadArea
+        aria-disabled={uploading}
+        data-test="mediaFileDropArea"
+        $dragging={dragging}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <Styled.FileInput
           type="file"
           accept={uploadValidMimeTypes
@@ -230,7 +260,7 @@ const MediaFileView: React.FC<MediaFileViewProps> = ({ intl, onActionCompleted }
         </Styled.ProgressWrapper>
       )}
 
-      {errorMessage && <Styled.ErrorText>{errorMessage}</Styled.ErrorText>}
+      {errorMessage && <Styled.ErrorText role="alert">{errorMessage}</Styled.ErrorText>}
 
       <Styled.ProgressWrapper>
         <BBButton

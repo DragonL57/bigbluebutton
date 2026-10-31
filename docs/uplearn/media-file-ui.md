@@ -96,11 +96,12 @@ then POST the file with `XMLHttpRequest` because `fetch` cannot report progress
 (`actions-bar/media-area/media-sharing/presentation/service.js` is the reference implementation,
 including its token timeout). Cancel aborts the XHR and stops the poll.
 
-Drop-zone drag and drop is deferred; the file picker plus a drop handler on the same area is the
-target for phase 2 only if it costs no extra component. Known gap, confirmed in a real room: the area
-still carries the `app.mediaFile.upload.dropHint` line ("or drop a file here") on a fine pointer, and
-no drop handler is bound, so a file dropped there does nothing. Until the handler exists the hint
-promises behaviour the component does not have.
+A dropped file takes the same path as a chosen one: the area accepts the drop, validates it against
+the same extension and size rules (the input's `accept` list does not filter a drop, so the file
+itself is checked), fills the selection, and turns the border solid while the file is over the area.
+The upload still starts from the button, so a drop never begins an upload on its own. A rejected file
+shows the reason in an `role="alert"` line, which keeps the button disabled, and the drop hint
+(`app.mediaFile.upload.dropHint`) only appears on a fine pointer.
 
 ## Playback surface
 
