@@ -19,15 +19,16 @@ const Container = styled.div`
   box-sizing: border-box;
 `;
 
-const UploadArea = styled.label`
+const UploadArea = styled.label<{ $dragging?: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   padding: 1.5rem;
-  border: 1px dashed ${colorPrimary};
+  border: 1px ${({ $dragging }) => ($dragging ? 'solid' : 'dashed')} ${colorPrimary};
   border-radius: ${borderRadius};
+  background-color: ${({ $dragging }) => ($dragging ? colorOffWhite : 'transparent')};
   cursor: pointer;
   text-align: center;
 
