@@ -36,6 +36,7 @@ project notes, and the Moodle `mod_bigbluebuttonbn` plugin pairs with the 4.0 li
 | `media-file-api.md` | Data model, GraphQL actions, Redis messages, HTTP endpoints, nginx rules, config keys, recording data contract |
 | `media-file-ui.md` | Media area entry point, upload sub-view, compact player layout, states, accessibility, i18n keys |
 | `upstream-patches.md` | Every upstream file this fork edits, with the change and the reason, for rebase review |
+| `deployment.md` | How the fork reaches a server: built here, shipped as debs, installed and held, verified, rolled back |
 
 ## Phases
 
