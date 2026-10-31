@@ -21,7 +21,9 @@ Build every package at one commit, using the names in `build/package-names.inc.s
 including `bigbluebutton`, the meta package). The meta package pins each dependency to the exact
 version it finds in `artifacts/` (`build/packages-template/bigbluebutton/build.sh:73`), so a full
 build produces a self-consistent set where every package carries the same
-`...-git.local-build-<sha>` stamp.
+`...-git.local-build-<sha>` stamp. Its dependency list covers 18 of the 31 packages, so installing
+the whole server is still `dpkg -i artifacts/*.deb`; the meta package is a convenience for the
+subset it names, not a complete install.
 
 That pinning is also why the meta package is unusable with a partial `artifacts/` directory. When
 only the changed packages were built, as on the test container, the unpinned packages fall back to
@@ -53,6 +55,14 @@ cd /home/thelong/coding/bigbluebutton
 git switch local-dev
 git pull --ff-only
 git rev-parse HEAD            # the sha every deb must carry
+```
+
+Six of the packages build from separate repositories, which a fresh checkout does not contain:
+`freeswitch`, `bbb-webhooks`, `bbb-webrtc-recorder`, `bbb-webrtc-sfu`, `bbb-transcription-controller`,
+and `bbb-playback`. Fetch them first, or those builds fail in seconds with an empty source tree:
+
+```bash
+build/get_external_dependencies.sh
 ```
 
 Each build needs the docker daemon, which asks for `pkexec` approval here:
