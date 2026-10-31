@@ -11,13 +11,17 @@ operation. `upstream-patches.md` lists the upstream files the fork edits.
 | Fork | `github.com/DragonL57/bigbluebutton` |
 | Upstream | `github.com/bigbluebutton/bigbluebutton` |
 | Integration branch | `local-dev`, tracks `upstream/v4.1.x-develop` |
-| Base commit | `1f354dacfda5b2dfca1126c6f6af15d2180a81b4` (`4.1.0-alpha.1`, 2026-10-06) |
+| Base commit | `a1991b9c01` (2026-10-30, `4.1.0-alpha.1`); rebased 2026-10-31, was `9fffe59753`, before that `1f354dacfd` (2026-10-06) |
+| Ticket | `UPL-126`, every commit on the branch carries it |
 | 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release` at `0a2ccd43` (tag `v4.0.0-rc.5`, 2026-10-07) |
 | Local clone | `/home/thelong/coding/bigbluebutton` (partial clone, full history) |
 
-Development moved to the 4.1 line, so `local-dev` tracks `upstream/v4.1.x-develop` and takes fixes
-with `git merge upstream/v4.1.x-develop`. The 4.0 work is preserved on `local-dev-40`, which tracks
-`upstream/v4.0.x-release`, and the 4.0 patch rebased onto 4.1 with no conflicts.
+Development moved to the 4.1 line, so `local-dev` tracks `upstream/v4.1.x-develop` and takes upstream
+work with `git rebase upstream/v4.1.x-develop`, then a `--force-with-lease` push pinned to the commit
+the remote held. The 4.0 work is preserved on `local-dev-40`, which tracks `upstream/v4.0.x-release`.
+Before each rebase, tag and branch the verified commit and push both, so the old history survives on
+the remote: `backup-verified-2026-10-31` and `backup-verified-media-file` still carry the build that
+was verified on 2026-10-31.
 
 Reasons: upstream has published no 4.1 release tag, but the 4.1 delta inside this feature's target
 areas is small (the media area, media sharing and app components, the layout engine and the external
