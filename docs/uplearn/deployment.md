@@ -76,6 +76,10 @@ done
 A single package is the same call with one name. The output lands in `artifacts/`, and the same
 package can be built twice under two stamps, so clean the directory before a release build.
 
+One build can stall inside `npm install` and never return, so wrap each call in
+`timeout -k 120 3600 build/setup.sh "$pkg"`. A stalled package then fails alone, and rerunning the
+loop is safe: a package that already has a deb at the current sha is skipped.
+
 ## Ship
 
 ```bash
