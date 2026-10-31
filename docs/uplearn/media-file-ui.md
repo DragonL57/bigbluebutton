@@ -97,7 +97,10 @@ then POST the file with `XMLHttpRequest` because `fetch` cannot report progress
 including its token timeout). Cancel aborts the XHR and stops the poll.
 
 Drop-zone drag and drop is deferred; the file picker plus a drop handler on the same area is the
-target for phase 2 only if it costs no extra component.
+target for phase 2 only if it costs no extra component. Known gap, confirmed in a real room: the area
+still carries the `app.mediaFile.upload.dropHint` line ("or drop a file here") on a fine pointer, and
+no drop handler is bound, so a file dropped there does nothing. Until the handler exists the hint
+promises behaviour the component does not have.
 
 ## Playback surface
 
