@@ -79,6 +79,8 @@ Upstream files the fork edits so a recorded meeting publishes its media files.
 | Upstream file | Change |
 |---|---|
 | `bbb-playback.placeholder.sh` | Clones the fork branch instead of the upstream tag, see below |
+| `build/packages-template/bbb-playback/build.sh` | Sets the playback base path in `src/config.js` as well as `src/config.json`: v5.4.8 dropped the JSON config, so the jq call alone fails the build |
+| `build/packages-template/bigbluebutton/LICENSE` | Added, because the meta package's `control` names `Copyright: LICENSE` and `equivs-build` refuses to run without that file in the staging directory |
 
 ## Second repository: bbb-playback
 

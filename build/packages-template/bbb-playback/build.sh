@@ -23,7 +23,13 @@ BBB_PLAYBACK=$BBB_PLAYBACK_BASE/$BBB_PLAYBACK_VERSION
 if ! which sponge ; then
     apt-get -y install moreutils
 fi
-jq '.styles.url = "/playback/presentation/2.3"' src/config.json | sponge src/config.json
+# note: bbb-playback v5.4.8 replaced src/config.json with src/config.js, where the base path is a
+# plain constant. Handle both layouts until upstream packaging catches up.
+if [ -f src/config.json ]; then
+    jq '.styles.url = "/playback/presentation/2.3"' src/config.json | sponge src/config.json
+else
+    sed -i "s|url: 'HOST'|url: '/playback/presentation/2.3'|" src/config.js
+fi
 
 export REACT_APP_BBB_PLAYBACK_BUILD=$(git rev-parse --short HEAD)
 
