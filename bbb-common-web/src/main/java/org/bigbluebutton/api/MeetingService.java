@@ -69,6 +69,7 @@ import com.google.gson.Gson;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.IOException;
 
 import org.springframework.data.domain.*;
 
@@ -1096,10 +1097,13 @@ public class MeetingService implements MessageListener {
     }
 
     try {
-      org.bigbluebutton.presentation.Util.deleteDirectory(meetingMediaDir);
+      // FileUtils reports what the presentation helper ignores: a file it cannot unlink leaves the
+      // directory behind, and a swallowed failure would log a removal that did not happen.
+      org.apache.commons.io.FileUtils.deleteDirectory(meetingMediaDir);
       log.info("Removed the media files of the ended meeting {}", m.getInternalId());
-    } catch (Exception e) {
-      log.error("Could not remove the media files of the ended meeting {}", m.getInternalId(), e);
+    } catch (IOException e) {
+      log.error("Could not remove the media files of the ended meeting {}, {} left behind",
+          m.getInternalId(), meetingMediaDir.getAbsolutePath(), e);
     }
   }
 
