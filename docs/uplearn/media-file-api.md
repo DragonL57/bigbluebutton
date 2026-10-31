@@ -296,13 +296,25 @@ meeting, so a published recording cannot fetch it.
 | Published data | `media_files.json` at the root of the published package, written by `process_media_file_events` in `presentation/scripts/publish/presentation.rb`: one entry per played file, `{ timestamp, stopTimestamp, mediaFileId, filename, path, duration, updates }`, timestamps in seconds relative to the recording start, `duration` from ffprobe instead of the browser. Each update is `{ timestamp, time, status, rate, state }`: `time` is the position inside the file, `status` the label the client sent (`play`, `pause`, `seek`), `state` 1 while the player ran and 0 when it stopped |
 | Published bytes | the file copied to `<published>/presentation/<meetingId>/media/<mediaFileId>.<ext>`; `path` in the entry is relative to the recording root |
 | Playback | implemented in the `bbb-playback` fork (`uplearn-media-file`, see `upstream-patches.md`): the recording clock stays the master, and the media element follows it. The entry active at the current time is the last one whose `timestamp` is reached and whose `stopTimestamp` is not; its position comes from the last update, advanced by (`time` - `timestamp`) * `rate` while that update says the player was running. Running is read from the update's `state` (1 running, 0 stopped), not from its `status`: a seek is written with status `seek` while the file keeps playing, so the label alone freezes the file at the seek position. The element plays or pauses accordingly, and its `currentTime` is pulled back when it drifts more than 0.5 s, which is what reproduces a pause or a jump inside the file. A file played twice in one meeting is two entries over the same stored bytes, each with its own window; the file a meeting ended on has no stop event, so its window ends with the recording and the element plays to its own end or to the end of the recording, whichever comes first |
-| Retention | a recorded meeting keeps its files until archiving finishes and then loses them with the source directory; a meeting without recording loses `mediaDir/<internalMeetingId>` at meeting end in `MeetingService.processMediaFileCleanup` |
+| Removal | deleting a file is only reachable while nothing is showing, because the media file panel replaces the player: the presenter stops the share first (`StopMediaPlayerPubMsg`), which closes the segment, and only then sees the file list and its delete button (`RemoveMediaFilePubMsg`), which drops the row and asks bbb-web for the bytes. The play window stays in the record events, but the file is gone before archiving: publish logs `Media file <id> was played but is not in the archive` and writes no entry for it |
+| Retention | a recorded meeting keeps its files until archiving finishes and then loses them with the source directory; a meeting without recording loses `mediaDir/<internalMeetingId>` at meeting end in `MeetingService.processMediaFileCleanup`. A file deleted during the meeting is already gone from that directory, so the archive gets an empty `<raw>/<meetingId>/media/<mediaFileId>/` and nothing is published |
+| No media in the recording | `media_files.json` is written only when at least one entry exists, the way `polls.json` and `external_videos.json` are. The playback app asks for it anyway and gets a 404, which it already handles for those files: the overlay stays hidden |
 
-`bbb-playback` is a separate repository, pinned at tag `v5.4.7` by `bbb-playback.placeholder.sh:3`, and
-packaged by `build/packages-template/bbb-playback`. Phase 3 therefore spans two repositories and the
+`bbb-playback` is a separate repository. `bbb-playback.placeholder.sh` clones the fork branch
+`uplearn-media-file` (upstream tag `v5.4.8`) instead of the upstream tag, and the package is built by
+`build/packages-template/bbb-playback`. Phase 3 therefore spans two repositories and the
 deb packages that carry them: `bbb-apps-akka`, `bbb-common`, `bbb-web`, `bbb-html5`,
 `bbb-graphql-actions`, `bbb-graphql-server`, `bbb-record-core`, `bbb-playback-presentation`,
 `bbb-playback`. Everything except the playback app is in this repository.
+
+The parser has runnable cases in `record-and-playback/core/test/recordandplayback/generators/test_events.rb`
+(minitest, five of them over the media segments). Run them from `record-and-playback/core` with the gems of
+an installed `bbb-record-core`:
+
+```bash
+BUNDLE_GEMFILE=/usr/local/bigbluebutton/core/Gemfile bundle exec ruby -Ilib -Itest \
+  test/recordandplayback/generators/test_events.rb
+```
 
 ## Compatibility rules
 
