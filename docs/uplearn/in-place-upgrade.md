@@ -35,6 +35,31 @@ dumps. The kit keeps that 4.0.2 set downloaded for exactly this reason.
 The salt in `/etc/bigbluebutton/bbb-web.properties` survives the upgrade, which is what keeps Moodle
 working without a config change.
 
+## Branding assets do not survive an upgrade
+
+`bbb-config` owns `/var/www/bigbluebutton-default/assets/favicon.ico` and
+`/var/www/bigbluebutton-default/assets/images/logo.png`, and nginx serves the whole directory at
+`location /`. Both files are plain package files, not conffiles, so installing a new `bbb-config`
+writes BBB's stock icon and logo over the UpLearn ones. `darklogo.png` survived only because no
+package ships a file at that path.
+
+The settings in `/etc/bigbluebutton/bbb-html5.yml` (client title, footer, `customStyleUrl`,
+`displayBrandingArea`) are a conffile and did survive, which is why the page kept the UpLearn title
+and theme CSS while the icon and header logo went back to stock.
+
+Copy the three files back from `/root/prod-rebrand` after every upgrade of `bbb-config`:
+
+```bash
+cd /var/www/bigbluebutton-default/assets
+cp /root/prod-rebrand/favicon.ico favicon.ico
+cp /root/prod-rebrand/logo.png images/logo.png
+cp /root/prod-rebrand/darklogo.png images/darklogo.png
+```
+
+Diagnostic detail: dpkg restores the modification time recorded in the package, so the overwritten
+files carry the build time of the deb, not the time of the install. A logo dated minutes before the
+install started is the sign of a package overwrite rather than a manual edit.
+
 ## After the install
 
 ```bash
