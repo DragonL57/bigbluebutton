@@ -74,5 +74,6 @@ recording page, and any UpLearn surface that links into a room.
 ## Sources checked
 
 Upstream trees for `v4.0.0-rc.5`, `v4.0.x-release`, `v4.1.x-develop` and `v3.0.x-develop`; the
-`bbb-playback` tag `v5.4.7` that this release pins (`bbb-playback.placeholder.sh:3`); the
+`bbb-playback` fork branch `uplearn-media-file` on tag `v5.4.8` (`bbb-playback.placeholder.sh`,
+see `upstream-patches.md`); the
 `bigbluebutton-html-plugin-sdk` tag `v1.0.0-beta.3`; issues #8276 and #25223; PR #8753.
