@@ -51,14 +51,24 @@ The UpLearn originals and the script that first applied them live in `/root/prod
 (`apply-prod-rebrand.sh`). Run only the three copy commands, not the script: its second half appends
 a branding block to `bbb-html5.yml`, and a second run duplicates it.
 
-Copy the three files back from `/root/prod-rebrand` after every upgrade of `bbb-config`:
+The recording player carries a fourth copy. Its pages declare
+`<link rel="icon" href="/playback/presentation/2.3/favicon.ico">`, and that file belongs to
+`bbb-playback`, so a recording tab showed the BBB icon even after the meeting client was fixed.
+
+Copy the four files back from `/root/prod-rebrand` after upgrading `bbb-config` or `bbb-playback`,
+keeping the package copies next to them as `.bbb-stock`:
 
 ```bash
 cd /var/www/bigbluebutton-default/assets
 cp /root/prod-rebrand/favicon.ico favicon.ico
 cp /root/prod-rebrand/logo.png images/logo.png
 cp /root/prod-rebrand/darklogo.png images/darklogo.png
+cp /root/prod-rebrand/favicon.ico /var/bigbluebutton/playback/presentation/2.3/favicon.ico
 ```
+
+The durable fix is to ship those files from our own builds instead: the two `bbb-config` assets from
+the packages template, and the player icon from the `bbb-playback` fork's `public/` directory, which
+is where the built app takes it from.
 
 Diagnostic detail: dpkg restores the modification time recorded in the package, so the overwritten
 files carry the build time of the deb, not the time of the install. A logo dated minutes before the
@@ -86,7 +96,7 @@ Written down on 2026-10-31, after the checks below passed.
 | Disabled | `bbb-transcription-controller`, a package new in 4.1. Its service cannot reach the FreeSWITCH event socket, and transcription is not used here, so the unit is disabled and the package stays installed |
 | Shared secret | unchanged, sha1 `95a96ec2724e` before and after |
 | Recordings | `/var/bigbluebutton` still 12 GB, a 4.0-era and a fresh recording both return 200 for the player page, `presentation_text.json` and `shapes.svg` |
-| Branding | `favicon.ico`, `images/logo.png` and `images/darklogo.png` copied back from `/root/prod-rebrand`; the `bbb-html5.yml` title, footer and style URL were never lost |
+| Branding | `favicon.ico`, `images/logo.png` and `images/darklogo.png` copied back from `/root/prod-rebrand`, plus the playback app's own icon at `/var/bigbluebutton/playback/presentation/2.3/favicon.ico`; the `bbb-html5.yml` title, footer and style URL were never lost |
 | Disk left behind | `/root/bbb-uplearn-cb38d7e30e` 1.9 GB (bundle, checksum, `install.sh`, extracted debs) and `/root/bbb-revert-4.0.0-rc.3` 929 MB |
 
 Verified live on the upgraded server: a room created through the API, joined as moderator, a 1.5 MB
