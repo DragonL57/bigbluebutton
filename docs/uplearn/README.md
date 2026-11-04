@@ -43,6 +43,7 @@ survived the upgrade.
 | `upstream-patches.md` | Every upstream file this fork edits, with the change and the reason, for rebase review |
 | `deployment.md` | How the fork reaches a server: built here, shipped as debs, installed and held, verified, rolled back |
 | `in-place-upgrade.md` | Replacing a running 4.0 install with the 4.1 bundle: what the revert kit holds, the four failures met on the way, and the checks after |
+| `operations.md` | Problems met while running the 4.1 build: the playback host that reverts on upgrade, the missing client cache headers, the whiteboard ink report and what the running build measures |
 
 ## Phases
 
