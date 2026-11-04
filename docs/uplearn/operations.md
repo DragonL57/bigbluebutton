@@ -115,6 +115,75 @@ the build running here; and automatic dark mode from `prefers-color-scheme` land
 gated by `public.app.darkTheme.autoDetectFromSystem` (default `true`), so members of the same class
 can legitimately be in different themes.
 
+## Forcing the light theme on a running client
+
+A class reported one member seeing a black whiteboard toolbar inside an otherwise light room, and
+another reported black ink rendering white. Both turned out to sit outside the palette, but they
+shared a cause worth writing down: on this build the client theme is per viewer, and the whiteboard
+now follows it.
+
+What production serves, read from a live client:
+
+| Setting | Value |
+|---|---|
+| `public.app.darkTheme.enabled` | `false` |
+| `public.app.darkTheme.autoDetectFromSystem` | `false` |
+| `defaultSettings.application.darkTheme` | `false` |
+| `public.app.userSettingsStorage` | `session` |
+
+With those values a dark client is only reachable through `userdata-bbb_prefer_dark_theme` in a join
+URL, read at `bigbluebutton-html5/imports/ui/services/settings/index.js:79-83`, where the parameter
+beats the configured default whether or not the feature is enabled. A stored preference cannot
+survive, because `session` storage dies with the tab.
+
+Two upstream changes explain why a dark viewer looks worse on 4.1 than on 4.0:
+
+- 4.0 shipped `darkreader` (`^4.9.117`) and inverted the whole page at runtime, so nothing could stay
+  accidentally light. 4.1 removed the dependency and repaints with hand written tokens, leaving any
+  surface it has not tokenised in its light value. That is the bleeding.
+- 4.0 never told tldraw the client theme; 4.1 does, at `component.jsx:222` on change and
+  `component.jsx:1371` on mount. Measured in a dark client: `tl-container tl-theme__dark`, tldraw UI
+  dark, canvas pinned light at `rgb(249, 250, 251)` by `public/stylesheets/theme-dark.css:352`, ink
+  `rgb(29, 29, 29)`. A dark toolbar around a white slide is exactly this state.
+
+### The temporary patch now on the box
+
+Applied 2026-11-04 while a class was due, without a rebuild:
+
+1. `bundle.47bec0e5e8cc7dacfaaf.js` and `bundle.47bec0e5e8cc7dacfaaf.safari.js`: the literal
+   `bbb_prefer_dark_theme` renamed to `bbb_dark_theme_ignored`, two occurrences and five. The lookup
+   misses, so the configured default applies to every join.
+2. `index.html`: `bundleHash` bumped from `47bec0e5e8cc7dacfaaf` to `darkfix1`, with the patched
+   bundles copied under that name. The old names stay so HTML from a cache still resolves.
+3. Every touched file's `.gz` twin rebuilt.
+
+Step 3 is the one that cost an hour. The client location is served by
+`/usr/share/bigbluebutton/nginx/bbb-html5.nginx.static:299` with `gzip_static on`, so a browser is
+handed `index.html.gz` and never sees the edited `index.html`. `curl` without `Accept-Encoding` shows
+the fixed file and confirms nothing. Always verify with `curl -sk --compressed`, and rebuild the
+gzip twin after any edit under `/usr/share/bigbluebutton/html5-client/`.
+
+Verified on a join that carried `userdata-bbb_prefer_dark_theme=true`: `bundle.darkfix1.js`, no
+`data-theme` attribute, `tl-theme__light`, black body text. It applies to any client that reloads the
+page, since `/html5client/` has no `Cache-Control` and a reload revalidates. `Ctrl+Shift+R` settles a
+tab that still holds the old document.
+
+The patch edits package-owned bytes, so the next `bbb-html5` upgrade erases it. `/root/revert_force_light.sh`
+undoes it deliberately, restoring five backups and deleting the `darkfix1` copies.
+
+### The fix that belongs in source
+
+`services/settings/index.js` should treat a disabled feature as authoritative:
+
+```js
+const showDarkThemeDefault = window.meetingClientSettings.public.app.darkTheme.enabled
+  ? getFromUserSettings('bbb_prefer_dark_theme', darkThemeDefault)
+  : false;
+```
+
+with the same clamp after `loadChanged()` at line 88, and `Cache-Control: no-cache` on the entry
+document so a stale bundle cannot outlive a deploy. Both need a `bbb-html5` rebuild and are not done.
+
 ## Joining a room from the API for a test
 
 A `join` call with `redirect=false` returns a `sessionToken` that the client page rejects with 410
