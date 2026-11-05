@@ -146,9 +146,10 @@ Two upstream changes explain why a dark viewer looks worse on 4.1 than on 4.0:
   dark, canvas pinned light at `rgb(249, 250, 251)` by `public/stylesheets/theme-dark.css:352`, ink
   `rgb(29, 29, 29)`. A dark toolbar around a white slide is exactly this state.
 
-### The temporary patch now on the box
+### The byte patch that bridged the night, now removed
 
-Applied 2026-11-04 while a class was due, without a rebuild:
+Applied 2026-11-04 while a class was due, without a rebuild, and superseded by the package build below
+on 2026-11-05. Kept here because the gzip trap will catch the next person who edits a served asset:
 
 1. `bundle.47bec0e5e8cc7dacfaaf.js` and `bundle.47bec0e5e8cc7dacfaaf.safari.js`: the literal
    `bbb_prefer_dark_theme` renamed to `bbb_dark_theme_ignored`, two occurrences and five. The lookup
@@ -168,21 +169,44 @@ Verified on a join that carried `userdata-bbb_prefer_dark_theme=true`: `bundle.d
 page, since `/html5client/` has no `Cache-Control` and a reload revalidates. `Ctrl+Shift+R` settles a
 tab that still holds the old document.
 
-The patch edits package-owned bytes, so the next `bbb-html5` upgrade erases it. `/root/revert_force_light.sh`
-undoes it deliberately, restoring five backups and deleting the `darkfix1` copies.
+The patch edited package-owned bytes, so the `bbb-html5` upgrade erased it as expected. `/root/revert_force_light.sh`
+would undo it by hand, and is harmless now.
 
-### The fix that belongs in source
+### The fix that shipped: build `0d2f2ee01a`
 
-`services/settings/index.js` should treat a disabled feature as authoritative:
+Committed and installed on 2026-11-05 as `bbb-html5 2:4.1.0~alpha.1+20261104T101850-git.local-build-2b023e3aea`,
+bundle `e1870b65b84973ae269b`.
+
+`services/settings/index.js` now treats a disabled feature as authoritative, in both places the value can
+arrive:
 
 ```js
-const showDarkThemeDefault = window.meetingClientSettings.public.app.darkTheme.enabled
+const darkThemeOffered = window.meetingClientSettings.public.app.darkTheme?.enabled;
+const showDarkThemeDefault = darkThemeOffered
   ? getFromUserSettings('bbb_prefer_dark_theme', darkThemeDefault)
   : false;
+// ... setDefault, then loadChanged()
+if (!darkThemeOffered && this.application?.darkTheme) {
+  this.application = { ...this.application, darkTheme: false };
+}
 ```
 
-with the same clamp after `loadChanged()` at line 88, and `Cache-Control: no-cache` on the entry
-document so a stale bundle cannot outlive a deploy. Both need a `bbb-html5` rebuild and are not done.
+The second block matters as much as the first: `loadChanged()` merges the persisted "changed" blob over
+the defaults after the parameter is resolved, so clamping only the default would let a stored selection
+through.
+
+`/usr/share/bigbluebutton/nginx/bbb-html5.nginx.static` gained `add_header Cache-Control "no-cache" always`
+on the client location, so the entry document revalidates on every join instead of waiting out a
+heuristic cache. The header sits on the whole location rather than a nested one on purpose: `alias`
+does not resolve reliably inside a nested location, and a broken path there takes the room down.
+
+Verified after install on a join carrying `userdata-bbb_prefer_dark_theme=true`: served entry
+`bundleHash = 'e1870b65b84973ae269b'` with `Cache-Control: no-cache`, client `bundle.e1870b65b84973ae269b.js`,
+no `data-theme` attribute, `tl-theme__light`, black body text. All 31 `bbb-*` packages are held with
+`apt-mark hold`, and `systemctl --failed` is empty.
+
+Remaining exposure, stated plainly: a tab that loaded the client before the install keeps its old
+bundle until it reloads, and the mobile app runs its own theme beyond anything here.
 
 ## Joining a room from the API for a test
 
