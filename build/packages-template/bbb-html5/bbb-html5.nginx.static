@@ -1,9 +1,17 @@
 # running in production (static assets)
+#
+# No Cache-Control here means a browser is free to reuse a heuristic copy, and
+# the entry document is the one file whose URL never changes with a build, so a
+# new build stays invisible to that tab until the copy expires. no-cache keeps
+# the browser storing everything but forces revalidation, one conditional
+# request per file per join. Nested locations are avoided on purpose: alias does
+# not resolve reliably inside one, and a broken path here takes the room down.
 location /html5client {
     gzip_static on;
     alias /usr/share/bigbluebutton/html5-client/;
     index index.html;
     try_files $uri $uri/ =404;
+    add_header Cache-Control "no-cache" always;
 }
 
 location /html5client/locales {
