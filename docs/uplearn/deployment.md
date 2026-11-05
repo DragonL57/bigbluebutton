@@ -100,8 +100,7 @@ revert kit, until a real class has run on the new build.
 ```bash
 cd /tmp && tar xzf bbb-uplearn-<sha>.tgz
 dpkg -i artifacts/*.deb            # one invocation, so inter-package dependencies resolve
-apt-mark hold bbb-apps-akka bbb-web bbb-html5 bbb-graphql-server bbb-graphql-actions \
-              bbb-record-core bbb-playback-presentation bbb-playback
+for p in $(dpkg-query -W -f='${Package}\n' 'bbb-*'); do apt-mark hold "$p"; done
 bbb-conf --restart
 bbb-conf --check
 ```
@@ -119,6 +118,38 @@ dpkg -l | awk '/^ii  bbb-/ {print $2, $3}'     # every changed package on the bu
 Then a real meeting: create a room with recording on, upload a media file, play it, pause it, end the
 meeting. The recording has to archive the file, publish `media_files.json`, and play it back at the
 position the file was paused. That is the same sequence used on `bbb41`.
+## Replacing one package between releases
+
+The full bundle is for a planned upgrade. A single package can be rebuilt and swapped without
+touching a running class, which is how the client clamp from `operations.md` reached production on
+2026-11-05.
+
+```bash
+# workstation
+cd /home/thelong/coding/bigbluebutton
+PATH=/tmp/nosudo:$PATH timeout -k 120 3600 build/setup.sh bbb-html5
+ls -t artifacts/bbb-html5_*.deb | head -1
+sha256sum artifacts/bbb-html5_*.deb
+# target
+dpkg -i --force-confdef --force-confold /root/bbb-html5_<stamp>.deb
+nginx -t && systemctl reload nginx
+```
+
+`dpkg -i` alone is enough even with the package held; `apt-mark hold` blocks `apt`, not `dpkg`. The
+client is static files, so installing `bbb-html5` drops no meeting, but the nginx reload is required
+for a changed `bbb-html5.nginx.static` to take effect.
+
+Verify from the target with compression on, because nginx serves `gzip_static on` and a plain `curl`
+reads a different file than a browser does:
+
+```bash
+curl -sk --compressed -D- https://<host>/html5client/ -o /tmp/entry.html | grep -i cache-control
+grep -m1 "var bundleHash" /tmp/entry.html   # must match the new build's bundle name
+```
+
+Then join a room and confirm the client actually runs that bundle, rather than trusting the served
+file.
+
 
 ## Rollback
 
