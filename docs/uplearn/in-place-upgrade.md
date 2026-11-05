@@ -77,8 +77,7 @@ install started is the sign of a package overwrite rather than a manual edit.
 ## After the install
 
 ```bash
-apt-mark hold bbb-apps-akka bbb-web bbb-html5 bbb-graphql-server bbb-graphql-actions \
-              bbb-record-core bbb-playback-presentation bbb-playback
+for p in $(dpkg-query -W -f='${Package}\n' 'bbb-*'); do apt-mark hold "$p"; done
 bbb-conf --restart
 bbb-conf --check
 ```
@@ -107,3 +106,21 @@ the fork's cleanup path running on production.
 Two `bbb-conf --check` warnings are expected on this setup and harmless: the webhooks port warning
 compares the nginx upstream name against a config key that no longer means what the check assumes,
 and the STUN check fails whenever the server cannot reach `stun.l.google.com`.
+
+## Follow-up on 2026-11-05: the client dark theme
+
+The 4.1 client made the theme per viewer, and the whiteboard follows it through
+`updateUserPreferences`, so a member whose join URL carried `userdata-bbb_prefer_dark_theme=true` got a
+dark tldraw toolbar around a slide that stays pinned light. Two members hit it, one as a black toolbar,
+one as ink that looked wrong.
+
+`bbb-html5` was rebuilt as `2b023e3aea` and installed on its own, without a bundle and without
+restarting the room services. The client now clamps `application.darkTheme` to false when
+`public.app.darkTheme.enabled` is false, both for the join parameter and after `loadChanged()` merges a
+stored value, and the client location sends `Cache-Control: no-cache` so the entry document revalidates
+instead of hiding a new build behind a heuristic cache.
+
+Verified after install: served `bundleHash = 'e1870b65b84973ae269b'`, `Cache-Control: no-cache`, and a
+join carrying the dark parameter landing in `tl-theme__light` with black body text. All 31 `bbb-*`
+packages are held. `operations.md` records why 4.1 bleeds where 4.0 did not, and the `gzip_static` trap
+that made the first attempt invisible to browsers.

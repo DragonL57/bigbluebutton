@@ -34,6 +34,10 @@ operation, and `deployment.md` records how a bundle is built and shipped. The Mo
 `mod_bigbluebuttonbn` plugin needed no change, because the shared secret in `bbb-web.properties`
 survived the upgrade.
 
+Two follow-ups after that install: `bbb-html5` was rebuilt and replaced on 2026-11-05 as build
+`2b023e3aea` (dark theme forced off, `Cache-Control` on the client entry document), and every `bbb-*`
+package is now held, not eight of them. `operations.md` records what forced that rebuild.
+
 ## Documents
 
 | File | Content |
@@ -43,7 +47,7 @@ survived the upgrade.
 | `upstream-patches.md` | Every upstream file this fork edits, with the change and the reason, for rebase review |
 | `deployment.md` | How the fork reaches a server: built here, shipped as debs, installed and held, verified, rolled back |
 | `in-place-upgrade.md` | Replacing a running 4.0 install with the 4.1 bundle: what the revert kit holds, the four failures met on the way, and the checks after |
-| `operations.md` | Problems met while running the 4.1 build: the playback host that reverts on upgrade, the missing client cache headers, the whiteboard ink report and what the running build measures |
+| `operations.md` | Problems met while running the 4.1 build: the playback host that reverts on upgrade, the whiteboard ink report, and the dark theme that reached single members through a join parameter until the client clamp shipped |
 
 ## Phases
 
