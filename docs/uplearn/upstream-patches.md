@@ -105,6 +105,17 @@ Upstream files the branch edits: `src/config.js` (the `mediaFiles` file entry), 
 A rebase onto a newer tag re-runs `git apply` of the branch patch and then
 `CI=true npx react-scripts test --watchAll=false src/utils/data/mediaFiles.test.js`, plus a build.
 
+## Dark theme
+
+Added 2026-11-05, `UPL-127`. Production runs with `public.app.darkTheme.enabled: false`, but the
+theme was still reachable per user, and the whiteboard follows it, so one member could sit in a dark
+client inside a light room. Reason and evidence in `operations.md`.
+
+| Upstream file | Change |
+|---|---|
+| `bigbluebutton-html5/imports/ui/services/settings/index.js` | `showDarkThemeDefault` is forced to `false` when `darkTheme.enabled` is false instead of reading `bbb_prefer_dark_theme`, and `application.darkTheme` is clamped again after `loadChanged()` merges a stored value |
+| `build/packages-template/bbb-html5/bbb-html5.nginx.static` | `add_header Cache-Control "no-cache" always` on the client location, so the entry document revalidates instead of being reused from a heuristic cache |
+
 ## Deliberately left as upstream
 
 No file under `components/presentation` is edited by this fork. A toolbar width fix was measured,
