@@ -26,17 +26,17 @@ disappears was dropped by a conflict resolution.
 | `akka-bbb-apps/src/main/scala/org/bigbluebutton/core/pubsub/senders/ReceivedJsonMsgHandlerActor.scala` | Six JSON routes for the media file messages |
 | `akka-bbb-apps/src/main/scala/org/bigbluebutton/core/running/MeetingActor.scala` | Mounts `MediaFileApp2x`, six message cases |
 | `akka-bbb-apps/src/main/scala/org/bigbluebutton/endpoint/redis/RedisRecorderActor.scala` | Media player start, update and stop record events |
-| `bbb-common-web/src/main/java/org/bigbluebutton/api/MeetingService.java` | `mediaUploadAuthzTokens` map, get and consume, expiry, `processMediaUploadToken`, the `instanceof` dispatch branch, `mediaDir`, `setMediaDir` and `processMediaFileRemove` |
+| `bbb-common-web/src/main/java/org/bigbluebutton/api/MeetingService.java` | `mediaUploadAuthzTokens` map, get and consume, expiry, `processMediaUploadToken`, the `instanceof` dispatch branch, `mediaDir`, `setMediaDir`, `processMediaFileRemove`, and `processMediaFileCleanup`, which deletes the meeting's `mediaDir` directory when a meeting ends without recording |
 | `bbb-common-web/src/main/java/org/bigbluebutton/api/Util.java` | `createMediaDir` and `getMediaFileDir` |
 | `bbb-common-web/src/main/java/org/bigbluebutton/api2/IBbbWebApiGWApp.java` | `sendMediaFileUploaded` |
 | `bbb-common-web/src/main/scala/org/bigbluebutton/api2/BbbWebApiGWApp.scala` | `sendMediaFileUploaded` |
 | `bbb-common-web/src/main/scala/org/bigbluebutton/api2/MsgBuilder.scala` | `buildMediaFileUploadedSysMsg` |
 | `bbb-common-web/src/main/scala/org/bigbluebutton/api2/bus/ReceivedJsonMsgHdlrActor.scala` | Routes `MediaFileUploadTokenSysPubMsg` |
 | `bbb-common-web/src/main/scala/org/bigbluebutton/api2/meeting/OldMeetingMsgHdlrActor.scala` | Same route for an already running meeting |
-| `bbb-graphql-server/bbb_schema.sql` | `mediaFile` and `mediaPlayer` tables with the `playerCompact` column, `v_mediaFile`, `v_mediaFile_uploadToken`, `v_mediaPlayer`, section wrapped in `media-file feature begin` and `end` markers |
-| `bbb-graphql-server/metadata/actions.graphql` | Five media file actions, `mediaFileUpdate` also carrying the presenter's `compact` |
-| `bbb-graphql-server/metadata/actions.yaml` | Same five actions |
-| `bbb-graphql-server/metadata/databases/BigBlueButton/tables/tables.yaml` | Registers the three media table metadata files |
+| `bbb-graphql-server/bbb_schema.sql` | `mediaFile` and `mediaPlayer` tables with the `playerCompact` column, `mediaGroup` and `user_mediaGroup`, and the views `v_mediaFile`, `v_mediaFile_uploadToken`, `v_mediaPlayer`, `v_mediaGroup` |
+| `bbb-graphql-server/metadata/actions.graphql` | Five media file actions, `mediaFileUpdate` also carrying the presenter's `compact`, plus `mediaGroupCreate`, `mediaGroupDestroy` and `mediaGroupSetUserState` |
+| `bbb-graphql-server/metadata/actions.yaml` | The same eight actions |
+| `bbb-graphql-server/metadata/databases/BigBlueButton/tables/tables.yaml` | Registers the five media view metadata files |
 | `bigbluebutton-html5/imports/ui/Types/meetingClientSettings.ts` | `MediaFile` and `MediaFileMirroredFromBbbcore` interfaces on `Public` |
 | `bigbluebutton-html5/imports/ui/core/initial-values/meetingClientSettings.ts` | `mediaFile` client defaults |
 | `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/component.tsx` | Media area button behind the presenter and enabled checks |
@@ -61,6 +61,13 @@ disappears was dropped by a conflict resolution.
 | `bigbluebutton-web/grails-app/conf/bigbluebutton.properties` | `mediaDir`, `maxMediaFileUpload`, `mediaBaseURL` |
 | `bigbluebutton-web/grails-app/controllers/org/bigbluebutton/web/UrlMappings.groovy` | Media upload and check routes |
 | `bigbluebutton-web/grails-app/conf/spring/resources.xml` | `mediaDir` on the `meetingService` bean, so the shared meeting service can delete a removed file |
+
+One window is open: a meeting that ends without recording loses its files but keeps its rows.
+`processMediaFileCleanup` deletes only the directory, and `MediaFileDAO.deleteByMeetingId`
+(`akka-bbb-apps/.../db/MediaFileDAO.scala`) has no caller. Harmless while the client queries the live
+meeting id, but a reused meetingID (Moodle reuses room ids) would list rows whose file no longer
+exists. Closing it means calling that delete from the end-of-meeting path, which is an
+`akka-bbb-apps` change plus a rebuild.
 
 ## Recording pipeline
 
