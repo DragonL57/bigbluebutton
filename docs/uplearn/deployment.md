@@ -168,6 +168,17 @@ nginx -t && systemctl reload nginx
 client is static files, so installing `bbb-html5` drops no meeting, but the nginx reload is required
 for a changed `bbb-html5.nginx.static` to take effect.
 
+A server-side package is the same call with a different ending. `bbb-apps-akka` was rebuilt and
+swapped on 2026-11-07 at `a754e25da6`
+(`2:4.0.2+20261107T101842-git.local-build-a754e25da6`) to ship the end-of-meeting row cleanup from
+`upstream-patches.md`: `dpkg -i --force-confdef --force-confold` then
+`systemctl restart bbb-apps-akka`, which ends the meetings that process is running, so swap it
+between classes.
+
+The build stamp comes from `git rev-parse` at build time, so a rebuild of an unchanged commit
+produces the same version string as the deb already installed and `dpkg` will not replace it. Commit
+first, then rebuild, or pin `FORCE_GIT_REV` and `FORCE_COMMIT_DATE` to something distinct.
+
 Verify from the target with compression on, because nginx serves `gzip_static on` and a plain `curl`
 reads a different file than a browser does:
 
