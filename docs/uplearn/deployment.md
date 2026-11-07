@@ -109,6 +109,35 @@ The hold is part of the install, not an optional extra. Without it, any later `a
 the upstream repository replaces the fork's packages with upstream ones and the feature disappears
 without any error.
 
+### What the install does not do
+
+Four things sit outside the deb postinst and were needed on both moves between the two lines:
+
+- `bbb-apps-akka` keeps the old `application.conf`, and dpkg leaves the packaged one next to it as
+  `.dpkg-dist`. The unit's `application.ini` passes
+  `-Dconfig.file=/etc/bigbluebutton/bbb-apps-akka.conf`, that file `include`s
+  `/usr/share/bbb-apps-akka/conf/application.conf` and then re-sets `bbbWebAPI` and `sharedSecret`,
+  so the packaged file can be taken outright:
+  `cd /usr/share/bbb-apps-akka/conf && mv application.conf.dpkg-dist application.conf`. Keeping the
+  older one loses the settings that line added, for example `presentationUploadTokenMaxRequests`
+  and `allowedAnnotationTypes` on 4.0.2.
+- `hasura metadata apply`. The postinst runs it, but the catalog can end up tracking no table at
+  all. Check before trusting the client:
+
+  ```bash
+  sudo -u postgres psql -d hasura_app -tAc \
+    "select s->>'name', jsonb_array_length(s->'tables') from hdb_catalog.hdb_metadata, jsonb_array_elements(metadata::jsonb->'sources') s;"
+  ```
+
+  The `BigBlueButton` source should track the media views (85 tables on 4.0.2). If it does not, from
+  `/usr/share/bbb-graphql-server` run
+  `sudo -u bigbluebutton env HOME=/tmp /usr/bin/hasura metadata apply --skip-update-check`. The admin
+  secret the CLI needs is in that directory's `config.yaml`.
+- The four branding files. `bbb-config` and `bbb-playback` are package files, not conffiles, so an
+  install puts BBB's stock icon and logos back; the copy commands are in `in-place-upgrade.md`.
+- `bbb-transcription-controller` crash-loops on the FreeSWITCH ESL auth on this server, on either
+  line. The unit is disabled there; transcription is not used.
+
 ## Verify
 
 ```bash
@@ -165,8 +194,15 @@ is the only exact revert for that machine.
 ## Version lines
 
 Until 2026-10-31 production ran BigBlueButton 4.0.0-rc.3 (`bbb.uplearn.vn`, native install on
-`36.50.176.205`, the same VPS as the Moodle containers). The fork builds `4.1.0~alpha.1` from
-`v4.1.x-develop`, and that is what the server runs now.
+`36.50.176.205`, the same VPS as the Moodle containers). The fork also builds `4.1.0~alpha.1` from
+`v4.1.x-develop`, which the server ran from 2026-10-31 to 2026-11-07.
+
+On 2026-11-07 the server was moved back to the 4.0 line: the bundle at `72d686d384`,
+`2:4.0.2+20261106T203756-git.local-build-72d686d384`, installed over the 4.1 packages with the
+command in "Install on the target". That is a cross-line downgrade, which upstream does not support;
+`in-place-upgrade.md` records what the revert kit for the 4.1 install holds and the state that install
+ended in. The revert kit for the downgrade is `/root/bbb-revert-4.1.0-alpha.1-20261107`, which also
+keeps the 4.1 akka conffile as `application.conf.kept-4.1`.
 
 Upstream supports moving forward inside one line by re-running the install script for that line, and
 does not support an in-place jump between lines: the documented route is a clean server plus a
@@ -174,9 +210,9 @@ migration of the recordings (`docs.bigbluebutton.org/4.1/administration/install/
 fork's debs onto the 4.0 machine is therefore not a supported upgrade, and the eight packages cannot
 be dropped onto it one at a time.
 
-Production took that route anyway, once, as a whole set rather than in pieces: `in-place-upgrade.md`
-records what a revert kit has to hold, the four failures that stop the configure step, and the state
-the server ended in.
+Production took that route anyway, in both directions, as a whole set rather than in pieces:
+`in-place-upgrade.md` records what a revert kit has to hold, the four failures that stop the
+configure step, and the state the server ended in.
 
 ## What the target needs to provide
 

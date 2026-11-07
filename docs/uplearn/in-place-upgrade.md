@@ -124,3 +124,23 @@ Verified after install: served `bundleHash = 'e1870b65b84973ae269b'`, `Cache-Con
 join carrying the dark parameter landing in `tl-theme__light` with black body text. All 31 `bbb-*`
 packages are held. `operations.md` records why 4.1 bleeds where 4.0 did not, and the `gzip_static` trap
 that made the first attempt invisible to browsers.
+
+## Downgrade on 2026-11-07: back to 4.0.2
+
+The server was moved back to the 4.0 line: the bundle at `72d686d384`,
+`2:4.0.2+20261106T203756-git.local-build-72d686d384`, installed over the 4.1 packages with
+`dpkg -i --force-confdef --force-confold artifacts/*.deb` and then `dpkg --configure -a` with the
+same flags, both rc 0, followed by `bbb-conf --restart`. The four things the install leaves out are
+in `deployment.md`. The revert material for the 4.1 install is
+`/root/bbb-revert-4.1.0-alpha.1-20261107`: `/etc/bigbluebutton`, `/etc/nginx`,
+`/usr/share/bigbluebutton/nginx`, the systemd units, `dpkg -l`, `--get-selections`, dumps of
+`hasura_app`, `bbb_graphql`, `blocknote_app` and `postgres`, and the 4.1 akka conffile as
+`application.conf.kept-4.1`.
+
+State after the downgrade, written down on 2026-11-07: 31 `bbb-*` at the 4.0.2 stamp and held,
+`bbb-presentation-video 5.1.0~rc4` from the 4.1 install (the pairing 4.0.2 itself uses),
+`systemctl --failed` empty with `bbb-transcription-controller` disabled, `hasura metadata apply` run
+by hand, branding restored, and recordings serving. Verified live: a moderator room in the browser,
+the audio conference, BlockNote shared notes, a WAV uploaded through the Media Area and played to the
+end, then `Removed the media files of the ended meeting` on end with `/var/bigbluebutton/media` left
+empty.

@@ -3,8 +3,9 @@
 Problems met while running the 4.1 build on `bbb.uplearn.vn`, what the evidence shows, and what is
 still open. Each section states what was measured, not what was suspected.
 
-Server: `36.50.176.205`, 4.1.0-alpha.1, build `cb38d7e30e`, client bundle
-`bundle.47bec0e5e8cc7dacfaaf.js`. Moodle runs in Docker beside it (`uplearn-prod-app-1`, docroot
+Server: `36.50.176.205`. It ran 4.1.0-alpha.1, build `cb38d7e30e`, client bundle
+`bundle.47bec0e5e8cc7dacfaaf.js`, until 2026-11-07, when it was moved back to the 4.0 line at build
+`72d686d384` (`in-place-upgrade.md`). Moodle runs in Docker beside it (`uplearn-prod-app-1`, docroot
 `/var/www/html/public`, dataroot `/var/www/moodledata`).
 
 ## Playback links point at the placeholder host after an upgrade

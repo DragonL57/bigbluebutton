@@ -28,11 +28,11 @@ areas is small (the media area, media sharing and app components, the layout eng
 video player differ in thirteen files), and 4.1 builds on the same Ubuntu base as 4.0, so a later move
 to the 4.1 release tag is a merge rather than a port.
 
-Since 2026-10-31 this branch is what runs on `bbb.uplearn.vn`: 4.1.0-alpha.1 built from `cb38d7e30e`,
-installed in place over the 4.0.0-rc.3 that was there before. `in-place-upgrade.md` records that
-operation, and `deployment.md` records how a bundle is built and shipped. The Moodle
-`mod_bigbluebuttonbn` plugin needed no change, because the shared secret in `bbb-web.properties`
-survived the upgrade.
+The 4.1 build ran on `bbb.uplearn.vn` from 2026-10-31 to 2026-11-07: 4.1.0-alpha.1 built from
+`cb38d7e30e`, installed in place over the 4.0.0-rc.3 that was there before. `in-place-upgrade.md`
+records that operation, and on 2026-11-07 also the move back to the 4.0 line at build `72d686d384`;
+`deployment.md` records how a bundle is built and shipped. The Moodle `mod_bigbluebuttonbn` plugin
+needed no change for either move, because the shared secret in `bbb-web.properties` survived both.
 
 Two follow-ups after that install: `bbb-html5` was rebuilt and replaced on 2026-11-05 as build
 `2b023e3aea` (dark theme forced off, `Cache-Control` on the client entry document), and every `bbb-*`
@@ -46,7 +46,7 @@ package is now held, not eight of them. `operations.md` records what forced that
 | `media-file-ui.md` | Media area entry point, upload sub-view, compact player layout, states, accessibility, i18n keys |
 | `upstream-patches.md` | Every upstream file this fork edits, with the change and the reason, for rebase review |
 | `deployment.md` | How the fork reaches a server: built here, shipped as debs, installed and held, verified, rolled back |
-| `in-place-upgrade.md` | Replacing a running 4.0 install with the 4.1 bundle: what the revert kit holds, the four failures met on the way, and the checks after |
+| `in-place-upgrade.md` | Replacing a running 4.0 install with the 4.1 bundle, and the move back on 2026-11-07: what a revert kit holds, the four failures met on the way, and the checks after |
 | `operations.md` | Problems met while running the 4.1 build: the playback host that reverts on upgrade, the whiteboard ink report, and the dark theme that reached single members through a join parameter until the client clamp shipped |
 
 ## Phases
