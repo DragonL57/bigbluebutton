@@ -62,12 +62,12 @@ disappears was dropped by a conflict resolution.
 | `bigbluebutton-web/grails-app/controllers/org/bigbluebutton/web/UrlMappings.groovy` | Media upload and check routes |
 | `bigbluebutton-web/grails-app/conf/spring/resources.xml` | `mediaDir` on the `meetingService` bean, so the shared meeting service can delete a removed file |
 
-One window is open: a meeting that ends without recording loses its files but keeps its rows.
-`processMediaFileCleanup` deletes only the directory, and `MediaFileDAO.deleteByMeetingId`
-(`akka-bbb-apps/.../db/MediaFileDAO.scala`) has no caller. Harmless while the client queries the live
-meeting id, but a reused meetingID (Moodle reuses room ids) would list rows whose file no longer
-exists. Closing it means calling that delete from the end-of-meeting path, which is an
-`akka-bbb-apps` change plus a rebuild.
+A meeting that ends takes its files and its rows with it. `processMediaFileCleanup` deletes the
+directory under `mediaDir`, and `endMeeting` (`akka-bbb-apps/.../running/HandlerHelpers.scala`, the
+function every end path calls: API, expiry, logout, breakout) calls
+`MediaFileDAO.deleteByMeetingId`, so the `mediaPlayer` rows follow through the composite key's
+`ON DELETE CASCADE`. Recorded meetings lose the rows too: record-and-playback builds its media data
+from the redis record events, not from these rows.
 
 ## Recording pipeline
 
