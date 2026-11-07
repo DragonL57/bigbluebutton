@@ -8,7 +8,7 @@ import org.bigbluebutton.core.apps.groupchats.GroupChatApp
 import org.bigbluebutton.core.apps.users.UsersApp
 import org.bigbluebutton.core.apps.voice.VoiceApp
 import org.bigbluebutton.core.bus.{ BigBlueButtonEvent, InternalEventBus }
-import org.bigbluebutton.core.db.{ MeetingDAO, MeetingRecordingDAO, NotificationDAO }
+import org.bigbluebutton.core.db.{ MediaFileDAO, MeetingDAO, MeetingRecordingDAO, NotificationDAO }
 import org.bigbluebutton.core.domain.MeetingState2x
 import org.bigbluebutton.core.models._
 import org.bigbluebutton.core2.MeetingStatus2x
@@ -264,6 +264,13 @@ trait HandlerHelpers extends SystemConfiguration {
     outGW.send(endedEvnt)
 
     MeetingDAO.setMeetingEnded(liveMeeting.props.meetingProp.intId, reason, userId)
+
+    // The media file rows describe what the room is playing, so they go with the meeting. bbb-web
+    // deletes the directory under mediaDir and cannot reach bbb_graphql, so this is the only place
+    // that can drop the rows; leaving them behind makes a reused meetingID list files that were
+    // already removed from disk. Recorded meetings lose the rows too: record-and-playback builds
+    // its media data from the redis record events, not from these rows.
+    MediaFileDAO.deleteByMeetingId(liveMeeting.props.meetingProp.intId)
   }
 
   def destroyMeeting(eventBus: InternalEventBus, meetingId: String): Unit = {
