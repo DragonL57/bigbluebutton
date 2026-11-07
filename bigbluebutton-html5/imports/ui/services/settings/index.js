@@ -76,28 +76,16 @@ class Settings {
       ? systemPrefersDarkTheme()
       : window.meetingClientSettings.public.app.defaultSettings.application.darkTheme;
 
-    // darkTheme.enabled=false means the theme is not offered, so nothing may
-    // hand it back: not the bbb_prefer_dark_theme join parameter, not a value
-    // stored by an older client. Honouring the parameter regardless of the flag
-    // is what let a stale link, or a bookmark made while the feature was on,
-    // put one member in a dark client while the room around them stayed light.
-    const darkThemeOffered = window.meetingClientSettings.public.app.darkTheme?.enabled;
-
-    const showDarkThemeDefault = darkThemeOffered
-      ? getFromUserSettings('bbb_prefer_dark_theme', darkThemeDefault)
-      : false;
+    const showDarkThemeDefault = getFromUserSettings(
+      'bbb_prefer_dark_theme',
+      darkThemeDefault,
+    );
 
     writableDefaultValues.application.animations = showAnimationsDefault;
     writableDefaultValues.application.darkTheme = showDarkThemeDefault;
 
     this.setDefault(writableDefaultValues);
     this.loadChanged();
-
-    // loadChanged() merges the persisted "changed" blob over the defaults, so a
-    // stored dark selection outlives the clamp above. Reassert the default.
-    if (!darkThemeOffered && this.application?.darkTheme) {
-      this.application = { ...this.application, darkTheme: false };
-    }
   }
 
   static getStorageKey({ prepend = '', value }) {

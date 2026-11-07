@@ -209,6 +209,19 @@ no `data-theme` attribute, `tl-theme__light`, black body text. All 31 `bbb-*` pa
 Remaining exposure, stated plainly: a tab that loaded the client before the install keeps its old
 bundle until it reloads, and the mobile app runs its own theme beyond anything here.
 
+### Reverted on 2026-11-07: outside the media feature, upstream only
+
+The server moved back to the 4.0 line on 2026-11-07, and the clamp above came with it. It was then
+reversed, because the 4.0 build is meant to carry the media feature and nothing else: the revert of
+`96f24141e1` deletes both the `settings/index.js` clamp and the `Cache-Control` header, so those two
+files match the base commit again.
+
+The consequence is the one this section opened with: `darkTheme.enabled: false` still hides the
+Settings toggle, but `userdata-bbb_prefer_dark_theme` in a join URL, and a dark choice kept in
+`session` storage, work again. A class that cares about this should not send the parameter. The
+client entry document is back to no `Cache-Control`, so after a client update a tab that stayed open
+may keep the old bundle until it reloads.
+
 ## Joining a room from the API for a test
 
 A `join` call with `redirect=false` returns a `sessionToken` that the client page rejects with 410
