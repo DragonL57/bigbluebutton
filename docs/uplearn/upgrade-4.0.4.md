@@ -32,9 +32,43 @@ Custom config, all of it outside the packages:
 |---|---|
 | `/etc/haproxy/haproxy.cfg` | TLS and `stun.turn` termination on 443, `send-proxy` to nginx on 81 and 82 |
 | `/etc/nginx/conf.d/bbb-graphql-client-settings-cache.conf`, `bbb-upstreams.conf` | The GraphQL settings cache and the upstream names |
-| `/etc/bigbluebutton/bbb-web.properties` | `bigbluebutton.web.serverURL`, `securitySalt=RNhCKjK…`, `useDefaultLogo=true`, `useDefaultDarkLogo=true`, `defaultKeepEvents=true`, `officeToPdfConversionTimeout=120` |
+| `/etc/bigbluebutton/bbb-web.properties` | `bigbluebutton.web.serverURL`, `securitySalt=RNhCKjK…`, `useDefaultLogo=true`, `useDefaultDarkLogo=true`, `defaultKeepEvents=true`, `officeToPdfConversionTimeout=120`; no `pageTokenSecret` (checked 2026-11-25) |
+| `/etc/bigbluebutton/bbb-html5.yml` | Title, copyright, theme CSS URL, dark theme forced off, notification defaults, English pinned, PDF-and-image upload list. Not owned by any package. Details under (1) |
 | `/etc/bigbluebutton/bbb-apps-akka.conf` | `include` of the packaged `application.conf` (fixed 2026-11-07), `bbbWebAPI`, the same shared secret |
 | `bbb-config` conffiles | nginx, and the four branding files: `favicon.ico`, `images/logo.png`, `images/darklogo.png` in `/var/www/bigbluebutton-default/assets`, and the playback app's `favicon.ico`. The copies in `/root/prod-rebrand` restore them |
+
+### The client override, read again on 2026-11-25
+
+`/etc/bigbluebutton/bbb-html5.yml` (2,403 B, 2026-11-18 09:22) carries every client change. No package
+owns the path (`dpkg -S` finds nothing), and `bbb-html5`'s `after-install.sh` only deletes
+`public.pads` from it, so a `bbb-html5` install leaves it in place. `bbb-apps-akka` reads it
+(`clientSettingsOverrideFilePath` in `application.conf`) and deep-merges it over
+`/usr/share/bigbluebutton/html5-client/private/config/settings.yml`; the client then takes the merged
+result from GraphQL (`imports/ui/components/settings-loader/component.tsx:100` assigns
+`window.meetingClientSettings`). The static `settings.yml` that nginx serves is not the live path.
+
+| Key | Value | Packaged default |
+|---|---|---|
+| `public.kurento.wsUrl` | `wss://bbb.uplearn.vn/bbb-webrtc-sfu` | derived from the server URL |
+| `public.app.clientTitle` | `UpLearn` | `BigBlueButton` |
+| `public.app.copyright` | `©2026 UpLearn` | `©2026 BigBlueButton Inc.` |
+| `public.app.customStyleUrl` | `https://bbb.uplearn.vn/uplearn-theme.css?v=1` | `null` |
+| `public.app.branding.displayBrandingArea` | `true` | `true` |
+| `public.app.darkTheme.enabled` | **`false`** | `true` |
+| `public.app.darkTheme.autoDetectFromSystem` | **`false`** | `true` |
+| `public.app.defaultSettings.application.darkTheme` | `false` | `false` |
+| `public.app.defaultSettings.application` notifications | `chatAudioAlerts`, `chatPushAlerts`, `userJoinPushAlerts`, `userLeavePushAlerts`, `muteUnmuteAudioAlerts`, `guestWaitingAudioAlerts`, `guestWaitingPushAlerts`, `raiseHandAudioAlerts`, `raiseHandPushAlerts` all `true`; `userJoinAudioAlerts`, `userLeaveAudioAlerts` `false` | all `false` |
+| `…application.animations`, `pushToTalkEnabled` | `true`, `true` | `false`, `true` |
+| `…application.whiteboardToolbarAutoHide`, `autoCloseReactionsBar` | `false`, `true` | `false`, `true` |
+| `…application.overrideLocale`, `fallbackLocale` | `en`, `en` | `null`, `null` |
+| `public.presentation.uploadValidMimeTypes` | `.pdf .jpg .jpeg .png .webp` | office + PDF + images |
+
+`public.pads.url` was in the file until 2026-09-27 and is gone; Etherpad left in 4.0 and the
+after-install strips the key.
+
+The packaged `settings.yml` still says `darkTheme.enabled: true` and carries the full office list. The
+override is what forces light mode and the PDF-only picker, so both survive a package install and
+neither depends on a re-apply script.
 
 ## (2) What 4.0.3 and 4.0.4 change against this server
 
@@ -114,9 +148,12 @@ The debs do not do these; 4.0.2 needed the same set (downgrade memory of 2026-11
 - Rebuild the whole bundle. 4.0.3 changes `bbb-web`, `bbb-record-core`, `bbb-graphql-middleware` and
   `bbb-learning-dashboard` as well as `bbb-apps-akka`, so the single-deb route used for `a754e25da6`
   and `c22ad90c26` does not apply.
-- A `bbb-html5` install replaces `/usr/share/bigbluebutton/html5-client/private/config/settings.yml`,
-  which carries the PDF-and-image upload restriction in (5). Put it back with
-  `/root/pdfonly-20261118.sh` after `/root/rebuild_gz_client.sh`.
+- A `bbb-html5` install replaces `/usr/share/bigbluebutton/html5-client/private/config/settings.yml`
+  and its `.gz`, and leaves `/etc/bigbluebutton/bbb-html5.yml` alone. The restriction in (5) and the
+  forced light mode live in the override, so they survive; the static pair comes back stock and only
+  matters to a direct fetch or `bbb-conf --check`. There is no `/root/pdfonly-20261118.sh` on the
+  server (checked 2026-11-25), so nothing re-applies the static edit; either keep the two static files
+  consistent by hand after an install or stop editing them.
 
 ## (4) Media defects found on 2026-11-20
 
@@ -160,13 +197,15 @@ each recorded meeting in `operations.md` after a session that played a file.
 
 ### What production enforces today
 
-Presentations are limited to PDF and images by editing the served client settings. No package changes;
-the edit is a hand copy on 2026-11-18 that keeps the original beside it.
+Presentations are limited to PDF and images in two places, both dated 2026-11-18 09:12-09:22, and
+the durable one is the client override, which no package owns.
 
 | Layer | Rule today | Source |
 |---|---|---|
-| Client, upload picker | `.pdf`, `.jpg`, `.jpeg`, `.png`, `.webp`; the picker's `accept` and the pre-read check both use `public.presentation.uploadValidMimeTypes` | `/usr/share/bigbluebutton/html5-client/private/config/settings.yml`, lines 1246-1256 |
-| Client, original kept | `settings.yml.pre-pdfonly-20261118-091255`, dated 2026-11-07 04:03:57 | same directory |
+| Client, live | `.pdf`, `.jpg`, `.jpeg`, `.png`, `.webp`, from the override that akka merges and the client loads over GraphQL | `/etc/bigbluebutton/bbb-html5.yml`, `public.presentation.uploadValidMimeTypes` |
+| Client, static copy | the same five types in the file nginx serves | `/usr/share/bigbluebutton/html5-client/private/config/settings.yml`, lines 1246-1256 |
+| Client, originals kept | two identical 57,300 B copies of the 2026-11-07 04:03 file, the full office list | `settings.yml.pre-pdfonly-20261118-091255` and `-091258`, and `/etc/bigbluebutton/bbb-html5.yml.pre-pdfonly-20261118-092246` |
+| Client, static gz | **the full office list**: `.gz` is the 2026-11-07 file (18,834 B, 57,138 B decoded), so `curl --compressed` against the static path gets no restriction (checked 2026-11-25) | `settings.yml.gz` |
 | Client, media area | audio and video list unchanged at lines 401-415: mp3, m4a, aac, ogg, wav, webm, mp4 | same file |
 | Server, create path | `MimeTypeUtils.getValidMimeTypes` accepts office, PDF and images; the client list never reaches it | `bbb-common-web/.../MimeTypeUtils.java:77` |
 | Server, in-room upload | `SupportedFileTypes.isPresentationMimeTypeValid` via `PresentationController.groovy:367` | same class, line 100 |
@@ -178,10 +217,12 @@ the edit is a hand copy on 2026-11-18 that keeps the original beside it.
    directly does not get refused. Fix: publish the list to bbb-web as a property
    (`allowedPresentationExtensions=pdf,jpg,jpeg,png,webp`, default all) and check it in
    `isPresentationMimeTypeValid`, so one value feeds both the client and the server.
-2. **The gz copy is already stale.** `settings.yml.gz` still decodes to the 2026-11-07 file with 57,138
-   bytes, while `settings.yml` holds 56,349. Clients that fetch the gz see the old list, so the
-   restriction only reaches clients that fetch the plain file. Fix: run `/root/rebuild_gz_client.sh`
-   after any edit, and make the gz part of the edit script rather than a separate step.
+2. **The static pair disagrees with itself.** `settings.yml.gz` still decodes to the 2026-11-07 file
+   (57,138 B) with the full office list, while `settings.yml` holds 56,349 B with the five types; a
+   `curl --compressed` against the static path returns the unrestricted list (checked 2026-11-25).
+   The room client does not read that path, so the ban stands, but `bbb-conf --check` and any direct
+   fetch see the wrong list. Fix: run `/root/rebuild_gz_client.sh` after editing the static file, or
+   stop editing the static file at all and let the override carry the rule.
 3. **The fork's own edit passes the list into the file-reader.**
    `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/media-sharing/presentation/container.jsx`
    carries 12 lines the fork added (UPL-126), and the picker and the file-reader both use
@@ -190,9 +231,10 @@ the edit is a hand copy on 2026-11-18 that keeps the original beside it.
    list in its own key (`public.mediaFile.uploadValidMimeTypes`, `settings.yml:401`) and check the
    picker's `accept` after every rebase.
 4. **No script and no record.** `/root/force_light_client.sh`, `rebuild_gz_client.sh` and
-   `revert_force_light.sh` do not touch the list, and no file on the server records the 2026-11-18
-   edit. Fix: write `/root/pdfonly-20261118.sh` (copy, edit, rebuild gz), keep the `.pre-pdfonly`
-   copy, and add the file to the revert kit list in `deployment.md`.
+   `revert_force_light.sh` do not touch the list, and `/root/pdfonly-20261118.sh` does not exist
+   (checked 2026-11-25). The three `.pre-pdfonly-20261118-*` copies are the only record. Fix: add the
+   override path and the three copies to the revert kit list in `deployment.md`, and drop the step
+   that expected a script.
 5. **A meeting created with a document default still converts it.** `defaultPresentation` is uploaded
    through `ApiController.groovy:1951`, which calls the same check, so a PDF gate on that function
    covers it once it is made configurable.
@@ -232,5 +274,6 @@ After the install, each line must print the value in the right column.
 | Player | open a recording with no media | no 404 in the browser console (M1) |
 | Upload types, client | open the upload picker | `.pdf`, `.jpg`, `.jpeg`, `.png`, `.webp` offered |
 | Upload types, server | `curl -X POST` a `.docx` to `create` | the response does not show a `file_too_large` or `invalid_filename` reason and bbb-web.log carries `Extension [docx] is not allowed` once (5) finding 1 ships |
-| Upload types, gz | `zcat settings.yml.gz \| diff - settings.yml` | no difference |
+| Upload types, gz | `zcat settings.yml.gz \| diff - settings.yml` | no difference: the static pair is consistent again after a stock install |
+| Upload types, live | `/etc/bigbluebutton/bbb-html5.yml` still holds the five types, and a room's picker offers no office type | the override survived the install; this is the path the client reads |
 | GraphQL endpoint | `curl -s -o /dev/null -w '%{http_code}' https://bbb.uplearn.vn/graphql` | `426` or another upgrade refusal on a plain GET, not `404`: 4.0.4's exact-match location is proxied |
