@@ -3,9 +3,10 @@
 Production is on the fork's 4.0.2 (`bbb.uplearn.vn`, read on 2026-11-20). Upstream tagged `v4.0.4` on
 2026-11-24, one release after `v4.0.3` (2026-11-19); 4.0.4 carries every 4.0.3 change and adds a
 hardening pass on the GraphQL middleware, so the move skips 4.0.3 and installs 4.0.4. This page is
-the spec for that move: the state it starts from, what 4.0.3 and 4.0.4 change that touches this
-server, two media defects the audit found, the PDF-and-image upload restriction reviewed, and the
-check that ends the work.
+the procedure for that move: the state it starts from, what 4.0.3 and 4.0.4 change that touches this
+server, the media behaviour and the one open defect, the PDF-and-image upload restriction reviewed, and
+the check that ends the work. The contract is `backlog/docs/specs/doc-2 - BBB 4.0.4 delivery.md` in the
+home repo; where this page disagrees, the contract wins.
 
 ## (1) The state this starts from
 
@@ -16,7 +17,7 @@ Measured on `uplearn-prod` on 2026-11-20, 09:44 UTC.
 | Fork base | `f31e684f6e`, which is the `v4.0.2` tag itself; `local-dev-40` carries the fork's commits on top |
 | Upstream 4.0.4 | tag `v4.0.4` at `bf6fc47b1f`, tagged 2026-11-24; release tip is that same commit on `upstream/v4.0.x-release` |
 | Commits from the base | 27 (`v4.0.2..v4.0.4`); 2 of them after `v4.0.3` at `f72d451ebf` |
-| Rebased fork | `37f7485c1c`, 34 commits on top of `v4.0.4`; the rebase applied without a conflict |
+| Rebased fork | `2c3c57d138`, 38 commits on top of `v4.0.4`; the rebase applied without a conflict |
 | Production packages | bundle `72d686d384` built 2026-11-06, then `bbb-apps-akka` `a754e25da6` and `bbb-html5` `c22ad90c26` as single debs |
 | Release file | `4.0.2` |
 | Held | 25 `bbb-*` packages by `apt-mark hold`; `bbb-presentation-video 5.1.0~rc4` stays off the line |
@@ -67,20 +68,21 @@ result from GraphQL (`imports/ui/components/settings-loader/component.tsx:100` a
 after-install strips the key.
 
 The packaged `settings.yml` still says `darkTheme.enabled: true` and carries the full office list. The
-override is what forces light mode and the PDF-only picker, so both survive a package install and
+override is what sets the light default and the PDF-only picker, so both survive a package install and
 neither depends on a re-apply script.
 
 ## (2) What 4.0.3 and 4.0.4 change against this server
 
-### Two changes that block the install
+### Two changes to check before the install
 
-1. `pageTokenSecret` has no fallback. `bigbluebutton.properties` in 4.0.3 sets
-   `pageTokenSecret=CHANGE_ME_PAGE_TOKEN_SECRET` and no longer derives it from `securitySalt`.
-   `BootStrap.groovy` throws `IllegalStateException` when `securitySalt` or `pageTokenSecret` is
-   empty, carries a `CHANGE_ME_` sentinel, or hashes to the retired default
-   `f85c8c2934b5a89cea99f26c887ecef1216d900e8652bba4ac9a7982d68ec96a` (that is the sha256 of
-   `330a8b08c3b4c61533e1d0c5ce1ac88f`). Production has no `pageTokenSecret` line today and runs on
-   `${securitySalt}`; add one before the install.
+1. `pageTokenSecret` no longer falls back to `securitySalt`. The 4.0.4 `bbb-web` postinst replaces
+   the classpath `pageTokenSecret=` line on every `configure`/`upgrade` (`after-install.sh:34-35`),
+   and a value in `/etc/bigbluebutton/bbb-web.properties` overrides it. The service boots without a
+   hand-set value; setting one in `/etc` is optional stable hardening, because otherwise the
+   postinst rotates it on every upgrade. `BootStrap.groovy` still refuses an empty, `CHANGE_ME_` or
+   retired-hash value, so verify the effective value is non-sentinel and not the retired
+   `f85c8c2934b5a89cea99f26c887ecef1216d900e8652bba4ac9a7982d68ec96a` (the sha256 of
+   `330a8b08c3b4c61533e1d0c5ce1ac88f`).
 2. The secret it checks with comes from `/etc/bigbluebutton/bbb-web.properties`, which holds
    `securitySalt=RNhCKjK…`. That value is not the retired default, so the check passes. The copy in
    `/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties` says `vdEiq7…`, which is stock;
@@ -112,7 +114,7 @@ and six files under `bbb-graphql-middleware/`. Nothing the fork edits.
 | Nesting bound | `writer.go` refuses a query with more than 5000 `{` and `[` before parsing, because the GraphQL parser recurses without a limit; the depth check keeps its own message | The media subscriptions are shallow (`v_mediaPlayer` and its relations), so they pass; a client query is refused rather than crashing the middleware |
 | Connection init | `connhandler.go` closes a connection that sends no `connection_init` within 30 s (code 4408), and `websrv/reader.go` routes nothing but `connection_init` until the connection is authorized | A slow join retries instead of holding an unauthenticated socket; the media views load after init, as before |
 | Idle close | The idle-timeout close runs in its own goroutine and cancels the connection context | An unresponsive peer no longer stalls the sweep |
-| Cursor compare | `reader.go` and `StreamCursorUtils.go` compare cursor values with `DeepEqual` instead of `==`/`!=`, which cannot compare a list or object decoded from JSON | Streaming subscriptions whose cursor is a list or object compare by value; the media views use an `Int` cursor, so nothing changes for them |
+| Cursor compare | `reader.go` and `StreamCursorUtils.go` compare cursor values with `DeepEqual` instead of `==`/`!=`, which cannot compare a list or object decoded from JSON | Streaming subscriptions whose cursor is a list or object compare by value; the media views have no stream cursor, so nothing changes for them |
 
 ### Files both sides touch
 
@@ -150,12 +152,13 @@ The debs do not do these; 4.0.2 needed the same set (downgrade memory of 2026-11
   and `c22ad90c26` does not apply.
 - A `bbb-html5` install replaces `/usr/share/bigbluebutton/html5-client/private/config/settings.yml`
   and its `.gz`, and leaves `/etc/bigbluebutton/bbb-html5.yml` alone. The restriction in (5) and the
-  forced light mode live in the override, so they survive; the static pair comes back stock and only
-  matters to a direct fetch or `bbb-conf --check`. There is no `/root/pdfonly-20261118.sh` on the
-  server (checked 2026-11-25), so nothing re-applies the static edit; either keep the two static files
-  consistent by hand after an install or stop editing them.
+  light default live in the override, so they survive; the static `.yml` is then rewritten by the
+  postinst with `public.kurento.wsUrl` and `public.app.bbbServerVersion`, and the `.gz` is not
+  rebuilt. Expect those two keys to differ; do not chase byte equality. There is no
+  `/root/pdfonly-20261118.sh` on the server (checked 2026-11-25), so nothing re-applies the static
+  edit; either accept the two-key difference or stop editing the static files.
 
-## (4) Media defects found on 2026-11-20
+## (4) Media findings from 2026-11-20
 
 Both recordings held a media file and neither published it.
 
@@ -170,28 +173,30 @@ events, `media_files.json` and the file under `media/`. An upload to
 `MediaFileUploadedSysPubMsg` received by `MediaFileApp2x`), so the upload path works. The two failing
 sessions produced no upload log line in `bbb-web.log` at all.
 
-### Defect M1: an empty media result 404s the player
+### M1 is not a defect: the player already handles a missing media result
 
-`bbb-playback` asks for `media_files.json` on every recording and renders an error when the answer is
-404. Publish writes the file only when it found media, so most recordings have no such file.
+`bbb-playback` asks for `media_files.json` on every recording. A 404 is treated as no data and the
+recording renders without a media section; there is no error state. Publish writes the file only
+when it found media, so most recordings have no such file. The browser still logs one expected 404
+for `media_files.json`; that network entry is not an application error.
 
-Spec:
-
-- When `media_files.json` answers 404, the player renders the recording without a media section.
-- When it answers 200 with an empty array, it does the same.
-- Do not create an empty `media_files.json` at publish time to hide the 404; the player is the side
-  that decides what a missing file means.
-- Add a check: a published recording with no media opens the player with no console error.
+The check is: a published recording with no media opens the player with no error state, and exactly
+one expected 404 for `media_files.json`. Do not create an empty `media_files.json` at publish time
+to hide the 404.
 
 ### Defect M2: a room's media events can go missing
 
 Unknown cause. What is ruled out so far: the fork's archive and publish changes (the 2026-11-11
 recording ran through both), the upload endpoint (the 11:22 upload succeeded), and the recording
-switch (both failing sessions recorded normally, audio and whiteboard events are present).
+switch (both failing sessions recorded normally, audio and whiteboard events are present). The
+evidence also shows no upload for the two failing sessions, so the upload path is not established
+as the cause.
 
-Spec: find where a `MediaFileUploadedSysPubMsg` the akka app receives stops producing
-`MediaPlayerStartRecordEvent` into the event recorder, and fix that layer. Until it is found, check
-each recorded meeting in `operations.md` after a session that played a file.
+Required behavior: find where a `MediaFileUploadedSysPubMsg` the akka app receives stops producing
+`MediaPlayerStartRecordEvent` into the event recorder, and fix that layer. Include the cleanup
+path: `MeetingService.processMediaFileCleanup` skips only when `m.isRecord()`, and 4.0.2 allowed an
+in-room recording start on a `record=false` room, so a later archive can find no media. Until the
+cause is found, check each recorded meeting in `operations.md` after a session that played a file.
 
 ## (5) The upload type restriction, and what review found
 
@@ -208,27 +213,29 @@ the durable one is the client override, which no package owns.
 | Client, static gz | **the full office list**: `.gz` is the 2026-11-07 file (18,834 B, 57,138 B decoded), so `curl --compressed` against the static path gets no restriction (checked 2026-11-25) | `settings.yml.gz` |
 | Client, media area | audio and video list unchanged at lines 401-415: mp3, m4a, aac, ogg, wav, webm, mp4 | same file |
 | Server, create path | `MimeTypeUtils.getValidMimeTypes` accepts office, PDF and images; the client list never reaches it | `bbb-common-web/.../MimeTypeUtils.java:77` |
-| Server, in-room upload | `SupportedFileTypes.isPresentationMimeTypeValid` via `PresentationController.groovy:367` | same class, line 100 |
+| Server, in-room upload | `SupportedFileTypes.isPresentationMimeTypeValid` via `PresentationController.groovy:380` | same class, line 100 |
 
 ### Findings
 
 1. **The restriction is client-side only.** A `create` call or an in-room POST carrying a `.docx` passes
    the server check and is converted. Executive impact: the client hides the type, and anyone posting
-   directly does not get refused. Fix: publish the list to bbb-web as a property
-   (`allowedPresentationExtensions=pdf,jpg,jpeg,png,webp`, default all) and check it in
-   `isPresentationMimeTypeValid`, so one value feeds both the client and the server.
+   directly does not get refused. Decided 2026-11-25 (D5, doc-2 §4): the move keeps the client check and
+   adds no server gate; upstream's `MimeTypeUtils` and upload path stay as upstream ships them. A server
+   gate is a separate task if the risk warrants it; until then, the client is the only enforcement.
 2. **The static pair disagrees with itself.** `settings.yml.gz` still decodes to the 2026-11-07 file
    (57,138 B) with the full office list, while `settings.yml` holds 56,349 B with the five types; a
    `curl --compressed` against the static path returns the unrestricted list (checked 2026-11-25).
    The room client does not read that path, so the ban stands, but `bbb-conf --check` and any direct
-   fetch see the wrong list. Fix: run `/root/rebuild_gz_client.sh` after editing the static file, or
-   stop editing the static file at all and let the override carry the rule.
-3. **The fork's own edit passes the list into the file-reader.**
+   fetch see the wrong list. After an install the postinst rewrites `settings.yml` with
+   `public.kurento.wsUrl` and `public.app.bbbServerVersion` and leaves the `.gz` stock, so the two
+   files cannot match; expect those two keys to differ and do not chase byte equality. Let the
+   override carry the rule.
+3. **The fork's container edit is not the media list.** The 12 fork lines in
    `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/media-sharing/presentation/container.jsx`
-   carries 12 lines the fork added (UPL-126), and the picker and the file-reader both use
-   `uploadValidMimeTypes` from it. A rebase that touches the file, or a later change that routes media
-   the same way, puts a PDF-only list in front of media uploads and blocks mp3 and mp4. Keep the media
-   list in its own key (`public.mediaFile.uploadValidMimeTypes`, `settings.yml:401`) and check the
+   are stop/generic-content wiring (UPL-126). The media picker reads
+   `public.mediaFile.uploadValidMimeTypes` from `window.meetingClientSettings.public.mediaFile`
+   (`media-file/component.tsx:35,99`), so it is not exposed to the presentation list. A rebase that
+   moves the presentation list into the media picker would block audio and video; check the media
    picker's `accept` after every rebase.
 4. **No script and no record.** `/root/force_light_client.sh`, `rebuild_gz_client.sh` and
    `revert_force_light.sh` do not touch the list, and `/root/pdfonly-20261118.sh` does not exist
@@ -243,37 +250,50 @@ the durable one is the client override, which no package owns.
 
 ## (6) The order of work
 
-1. Fix M1 in `bbb-playback`; rebuild the playback package and ship it alone.
-2. Find M2 with events from a test room on production or on the `bbb40` container.
-3. Move the PDF-and-image list into `bbb-web.properties` and the server check from (5) finding 1;
-   ship that with the 4.0.4 bundle.
-4. Rebase `local-dev-40` onto `upstream/v4.0.x-release` at `bf6fc47b1f` (tag `v4.0.4`). Resolve
+1. The §6 corrections are applied to this page, `decisions.md` and `upstream-patches.md`; verify them before the build.
+2. Server gate — decided 2026-11-25: deferred (D5, doc-2 §4). The client check stays; upstream's
+   upload path is kept; drop the server check from (7).
+3. M2 — decided 2026-11-25: the move proceeds now; the Media gate stays open. Collect the evidence
+   with events from a test room on production or on the `bbb40` container as a follow-up.
+4. Confirm the callback target and `record=false` use in Moodle (doc-2 §4).
+5. Rebase `local-dev-40` onto `upstream/v4.0.x-release` at `bf6fc47b1f` (tag `v4.0.4`). Resolve
    nothing by hand: the four shared files merge as listed in (2). Run `git diff v4.0.4 HEAD --stat`
    and check every fork path in `upstream-patches.md` is still listed. Done 2026-11-25: no conflict,
-   `37f7485c1c`.
-5. Add `pageTokenSecret` to `/etc/bigbluebutton/bbb-web.properties` on production.
-6. Build the full bundle, install on the `bbb40` container, then run the checks in (7).
-7. Install on production; a revert kit first, as `in-place-upgrade.md` describes.
+   `2c3c57d138`, 38 commits.
+6. Optionally set `pageTokenSecret` in `/etc/bigbluebutton/bbb-web.properties` for a stable value;
+   otherwise the postinst generates one. Build the full bundle, install on the `bbb40` container,
+   then run the checks in (7).
+7. Prove the revert on `bbb40`; install on production; a revert kit first, as `in-place-upgrade.md`
+   describes.
 
 ## (7) The check
 
-After the install, each line must print the value in the right column.
+After the install, each line must print the value in the right column. The Move and Rollback lines are
+the gate; the Media lines stay open until M2.
 
 | Check | Command | Expected |
 |---|---|---|
-| Version | `dpkg-query -W -f='${Version}\n' bbb-web` | `2:4.0.4+…` |
+| Version | `dpkg-query -W -f='${Package} ${Version}\n' bbb-web bbb-apps-akka bbb-html5 bbb-record-core bbb-graphql-middleware bbb-learning-dashboard` | each package `2:4.0.4+…`; the build stamp names the release commit |
 | Release | `cat /etc/bigbluebutton/bigbluebutton-release` | `BIGBLUEBUTTON_RELEASE=4.0.4` |
-| bbb-web came up | `systemctl is-active bbb-web` | `active`, and `curl -s https://bbb.uplearn.vn/bigbluebutton/api` answers `SUCCESS` |
-| Secrets | `curl -s https://bbb.uplearn.vn/bigbluebutton/api` | `SUCCESS`; a 500 or a refused start means the secret check failed |
+| bbb-web came up | `systemctl is-active bbb-web` | `active` |
+| API | `curl -s https://bbb.uplearn.vn/bigbluebutton/api` | `SUCCESS`; a Moodle join succeeds |
+| API secret | `curl -s https://bbb.uplearn.vn/bigbluebutton/api` | `SUCCESS`; a 500 or a refused start means the secret check failed |
+| Page token secret | read the effective `pageTokenSecret` (`/etc/bigbluebutton/bbb-web.properties` if present, else `/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties`); `journalctl -u bbb-web -b \| grep IllegalStateException` | non-empty, not `CHANGE_ME_PAGE_TOKEN_SECRET`, not the retired hash, different from `securitySalt`; no `IllegalStateException` |
+| Units | `systemctl list-units 'bbb-*' --state=active --no-legend`; `systemctl is-enabled bbb-transcription-controller` | every `bbb-*` active, none failed; transcription disabled |
 | Playback host | `grep ^playback_host /usr/local/bigbluebutton/core/scripts/bigbluebutton.yml` | `playback_host: bbb.uplearn.vn` |
-| Hasura | `sudo -u postgres psql -d bbb_graphql -tAc "select count(*) from information_schema.tables where table_schema='public'"` | 142 tables and 87 views in `bbb_graphql` before the install; the same after |
+| Hasura | `sudo -u postgres psql -d bbb_graphql -tAc "select count(*) from information_schema.tables where table_schema='public'"` | 142 public relations (55 tables + 87 views) before and after; 85 tracked after the metadata apply, including `v_mediaFile` and `v_mediaPlayer` |
 | GraphQL views | `sudo -u postgres psql -d bbb_graphql -tAc "select count(*) from \"v_mediaFile\""` | a row count, not an error: the media views survived the schema apply |
-| Branding | `ls /var/www/bigbluebutton-default/images/` | `logo.png`, `darklogo.png` from `/root/prod-rebrand` |
+| Branding | the four files from `/root/prod-rebrand` in the `bbb-config` paths in (1) | both favicons, `logo.png`, `darklogo.png` match the kit |
+| Static pair | `diff <(zcat /usr/share/bigbluebutton/html5-client/private/config/settings.yml.gz) /usr/share/bigbluebutton/html5-client/private/config/settings.yml` | only `public.kurento.wsUrl` and `public.app.bbbServerVersion` differ |
+| Client default | open a new room; then a join URL with `bbb_prefer_dark_theme=true` | light by default; the join parameter still opens dark |
+| GraphQL endpoint | `curl -s -o /dev/null -w '%{http_code}' https://bbb.uplearn.vn/graphql` | `426` (or the upgrade refusal), not `404`: 4.0.4's exact-match location is proxied |
 | Media | open a 4.0.4 room, upload a file, play it | the file plays; the meeting's directory appears under `/var/bigbluebutton/media/<id>` |
-| Recording | end the meeting, wait for the archive | `raw/<id>/media/` holds the file and `raw/<id>/events.xml` has `MEDIA-FILE` events |
-| Player | open a recording with no media | no 404 in the browser console (M1) |
-| Upload types, client | open the upload picker | `.pdf`, `.jpg`, `.jpeg`, `.png`, `.webp` offered |
-| Upload types, server | `curl -X POST` a `.docx` to `create` | the response does not show a `file_too_large` or `invalid_filename` reason and bbb-web.log carries `Extension [docx] is not allowed` once (5) finding 1 ships |
-| Upload types, gz | `zcat settings.yml.gz \| diff - settings.yml` | no difference: the static pair is consistent again after a stock install |
+| Recording | end the meeting, wait for the archive | `raw/<id>/media/` holds the file, `raw/<id>/events.xml` has `MEDIA-FILE`, and `published/.../media_files.json` exists |
+| Player | open a recording with no media | exactly one expected 404 for `media_files.json`; no error state (M1 is not a defect) |
+| Playback app | open a published recording that has media in `bbb-playback`; check the installed build record | the file plays; the installed build is at least `4fce271` and contains `980d0ba` |
+| Dashboard | archive a recorded meeting with a dashboard | the dashboard is produced; no missing-dashboard error in the archive log |
+| Upload types, client | open the presentation upload picker | `.pdf`, `.jpg`, `.jpeg`, `.png`, `.webp` offered |
 | Upload types, live | `/etc/bigbluebutton/bbb-html5.yml` still holds the five types, and a room's picker offers no office type | the override survived the install; this is the path the client reads |
-| GraphQL endpoint | `curl -s -o /dev/null -w '%{http_code}' https://bbb.uplearn.vn/graphql` | `426` or another upgrade refusal on a plain GET, not `404`: 4.0.4's exact-match location is proxied |
+| Upload types, media | open the media picker | audio and video still offered (its own `public.mediaFile` key) |
+| Holds | `apt-mark showhold \| grep '^bbb-'` | every `bbb-*` held; `bbb-presentation-video` unchanged |
+| Rollback | the `bbb40` proof record | install 4.0.4, run the Move checks, restore the kit, then the API and a media play pass |

@@ -13,7 +13,7 @@ because they cannot conflict; the added media file code is described in `media-f
 | Integration branch | `local-dev`, tracks `upstream/v4.1.x-develop` |
 | Base commit | `a1991b9c01` (2026-10-30); rebased 2026-10-31, was `9fffe59753` (2026-10-26), before that `1f354dacfd` (2026-10-06) |
 | Last rebase | 18 upstream commits, all in `docker/`, `.github/workflows/`, the Dockerfiles and the graphql middleware nginx template; none of them touch a path below, so the rebase applied without a conflict |
-| 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release`; rebased 2026-11-25 onto `bf6fc47b1f` (tag `v4.0.4`) at `37f7485c1c`, was based on `f31e684f6e` (tag `v4.0.2`). The move is specified in `upgrade-4.0.4.md` |
+| 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release`; rebased 2026-11-25 onto `bf6fc47b1f` (tag `v4.0.4`) at `2c3c57d138` (38 commits), was based on `f31e684f6e` (tag `v4.0.2`). The contract is `backlog/docs/specs/doc-2` in the home repo; the procedure is `upgrade-4.0.4.md` |
 | Local clone | `/home/thelong/coding/bigbluebutton` |
 
 After a rebase, `git diff upstream/v4.1.x-develop --stat` must still list these paths. A path that
@@ -25,6 +25,7 @@ disappears was dropped by a conflict resolution.
 |---|---|
 | `akka-bbb-apps/src/main/scala/org/bigbluebutton/core/pubsub/senders/ReceivedJsonMsgHandlerActor.scala` | Six JSON routes for the media file messages |
 | `akka-bbb-apps/src/main/scala/org/bigbluebutton/core/running/MeetingActor.scala` | Mounts `MediaFileApp2x`, six message cases |
+| `akka-bbb-apps/src/main/scala/org/bigbluebutton/core/running/HandlerHelpers.scala` | `endMeeting` calls `MediaFileDAO.deleteByMeetingId`, so the media rows follow every end path (API, expiry, logout, breakout) |
 | `akka-bbb-apps/src/main/scala/org/bigbluebutton/endpoint/redis/RedisRecorderActor.scala` | Media player start, update and stop record events |
 | `bbb-common-web/src/main/java/org/bigbluebutton/api/MeetingService.java` | `mediaUploadAuthzTokens` map, get and consume, expiry, `processMediaUploadToken`, the `instanceof` dispatch branch, `mediaDir`, `setMediaDir`, `processMediaFileRemove`, and `processMediaFileCleanup`, which deletes the meeting's `mediaDir` directory when a meeting ends without recording |
 | `bbb-common-web/src/main/java/org/bigbluebutton/api/Util.java` | `createMediaDir` and `getMediaFileDir` |
@@ -41,7 +42,8 @@ disappears was dropped by a conflict resolution.
 | `bigbluebutton-html5/imports/ui/core/initial-values/meetingClientSettings.ts` | `mediaFile` client defaults |
 | `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/component.tsx` | Media area button behind the presenter and enabled checks |
 | `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/container.tsx` | Reads `isMediaFileEnabled` |
-| `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/media-sharing/component.tsx` | Media file entry in the sharing modal |
+| `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/media-sharing/component.tsx` | Media file entry in the sharing modal; the button icon is `listen-filled` |
+| `bigbluebutton-html5/public/stylesheets/bbb-icons.css` | `.icon-bbb-listen-filled`: an SVG mask of the upstream bigbluebutton-font `icon-bbb-listen-filled.svg` (headphones), so the media-file button renders it without a font codepoint; carries `height: 1em` because the mask class has no `:before` line box |
 | `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/media-sharing/presentation/component.jsx` | Share button stays enabled for the presented file while a video plays, and pressing it stops that video first |
 | `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/media-sharing/presentation/container.jsx` | Reads the generic content id and passes the stop callback |
 | `bigbluebutton-html5/imports/ui/components/actions-bar/media-area/types.ts` | `MediaFileView` |
