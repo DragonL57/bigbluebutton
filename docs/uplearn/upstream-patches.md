@@ -13,7 +13,7 @@ because they cannot conflict; the added media file code is described in `media-f
 | Integration branch | `local-dev`, tracks `upstream/v4.1.x-develop` |
 | Base commit | `a1991b9c01` (2026-10-30); rebased 2026-10-31, was `9fffe59753` (2026-10-26), before that `1f354dacfd` (2026-10-06) |
 | Last rebase | 18 upstream commits, all in `docker/`, `.github/workflows/`, the Dockerfiles and the graphql middleware nginx template; none of them touch a path below, so the rebase applied without a conflict |
-| 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release` at `0a2ccd43` (tag `v4.0.0-rc.5`) |
+| 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release`; rebased 2026-11-25 onto `bf6fc47b1f` (tag `v4.0.4`) at `37f7485c1c`, was based on `f31e684f6e` (tag `v4.0.2`). The move is specified in `upgrade-4.0.4.md` |
 | Local clone | `/home/thelong/coding/bigbluebutton` |
 
 After a rebase, `git diff upstream/v4.1.x-develop --stat` must still list these paths. A path that
@@ -88,6 +88,12 @@ Upstream files the fork edits so a recorded meeting publishes its media files.
 | `bbb-playback.placeholder.sh` | Clones the fork branch instead of the upstream tag, see below |
 | `build/packages-template/bbb-playback/build.sh` | Sets the playback base path in `src/config.js` as well as `src/config.json`: v5.4.8 dropped the JSON config, so the jq call alone fails the build |
 | `build/packages-template/bigbluebutton/LICENSE` | Added, because the meta package's `control` names `Copyright: LICENSE` and `equivs-build` refuses to run without that file in the staging directory |
+
+## Type check
+
+| Upstream file | Change |
+|---|---|
+| `bigbluebutton-html5/imports/ui/components/user-list/user-search/service.ts` | `makeUserSearchWhere(searchQuery?: string)`: 4.0.4 added the caller in `useLoadedUserList` and passes an optional value, and `tsc --noEmit` (the pre-commit hook) refuses the narrower parameter, so no commit passes at the 4.0.4 base without this line |
 
 ## Second repository: bbb-playback
 

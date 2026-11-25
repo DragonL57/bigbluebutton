@@ -13,7 +13,7 @@ operation. `upstream-patches.md` lists the upstream files the fork edits.
 | Integration branch | `local-dev`, tracks `upstream/v4.1.x-develop` |
 | Base commit | `a1991b9c01` (2026-10-30, `4.1.0-alpha.1`); rebased 2026-10-31, was `9fffe59753`, before that `1f354dacfd` (2026-10-06) |
 | Tickets | `UPL-126` for the media feature, `UPL-127` for packaging and the production rollout; every commit carries one of them |
-| 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release` at `0a2ccd43` (tag `v4.0.0-rc.5`, 2026-10-07) |
+| 4.0 line | `local-dev-40`, tracks `upstream/v4.0.x-release`; rebased 2026-11-25 onto `bf6fc47b1f` (tag `v4.0.4`) |
 | Local clone | `/home/thelong/coding/bigbluebutton` (partial clone, full history) |
 
 Development moved to the 4.1 line, so `local-dev` tracks `upstream/v4.1.x-develop` and takes upstream
@@ -48,6 +48,7 @@ package is now held, not eight of them. `operations.md` records what forced that
 | `deployment.md` | How the fork reaches a server: built here, shipped as debs, installed and held, verified, rolled back |
 | `in-place-upgrade.md` | Replacing a running 4.0 install with the 4.1 bundle, and the move back on 2026-11-07: what a revert kit holds, the four failures met on the way, and the checks after |
 | `operations.md` | Problems met while running the 4.1 build: the playback host that reverts on upgrade, the whiteboard ink report, and the dark theme that reached single members through a join parameter until the client clamp shipped |
+| `upgrade-4.0.4.md` | Spec for moving production from the fork's 4.0.2 to 4.0.4: the measured state, the two changes 4.0.3 makes that block the install, the middleware hardening 4.0.4 adds, the conffiles the debs skip, two media defects and the PDF-and-image upload restriction found on 2026-11-20, and the check that ends the work |
 
 ## Phases
 
