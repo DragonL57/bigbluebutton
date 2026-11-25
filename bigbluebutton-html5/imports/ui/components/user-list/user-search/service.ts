@@ -5,7 +5,7 @@ export const isUserListSearchEnabled = () => (
 // A user name accepted by the join API can be up to 255 characters.
 export const USER_SEARCH_MAX_LENGTH = 255;
 
-export const makeUserSearchWhere = (searchQuery: string) => {
+export const makeUserSearchWhere = (searchQuery?: string) => {
   // Lowercase only to deduplicate equivalent terms; _ilike performs case-insensitive matching.
   const searchTerms = searchQuery
     ? [...new Set(searchQuery.slice(0, USER_SEARCH_MAX_LENGTH).trim().toLowerCase().split(/\s+/))]
