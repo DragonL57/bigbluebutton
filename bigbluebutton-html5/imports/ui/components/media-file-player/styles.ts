@@ -14,7 +14,7 @@ import {
   colorText,
   colorGrayLight,
   colorDanger,
-  colorBlueLightestBorder,
+  colorBorder,
 } from '/imports/ui/stylesheets/styled-components/palette';
 
 // Measurements follow Material 3 where M3 publishes one, and are the player's own decisions
@@ -48,7 +48,7 @@ const Band = styled.div<RectProps & { $pill?: boolean; $alignEnd?: boolean }>`
   box-sizing: border-box;
   padding: 0 8px;
   background-color: ${colorOffWhite};
-  border: 1px solid ${colorBlueLightestBorder};
+  border: 1px solid ${colorBorder};
   border-radius: ${lgBorderRadius};
   color: ${colorText};
 
