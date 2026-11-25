@@ -1,11 +1,11 @@
 # Moving to 4.0.4, with what production is today
 
-Production is on the fork's 4.0.2 (`bbb.uplearn.vn`, read on 2026-11-20). Upstream tagged `v4.0.4` on
-2026-11-24, one release after `v4.0.3` (2026-11-19); 4.0.4 carries every 4.0.3 change and adds a
-hardening pass on the GraphQL middleware, so the move skips 4.0.3 and installs 4.0.4. This page is
-the procedure for that move: the state it starts from, what 4.0.3 and 4.0.4 change that touches this
-server, the media behaviour and the one open defect, the PDF-and-image upload restriction reviewed, and
-the check that ends the work. The contract is `backlog/docs/specs/doc-2 - BBB 4.0.4 delivery.md` in the
+Production moved from the fork's 4.0.2 to 4.0.4 on 2026-11-25; §1 keeps the pre-move state as read
+on 2026-11-20. Upstream tagged `v4.0.4` on 2026-11-24, one release after `v4.0.3` (2026-11-19); 4.0.4
+carries every 4.0.3 change and adds a hardening pass on the GraphQL middleware, so the move skips
+4.0.3 and installs 4.0.4. This page is the procedure that was applied: the state it starts from, what
+4.0.3 and 4.0.4 change that touches this server, the media behaviour and the one open defect, the
+PDF-and-image upload restriction reviewed, and the check that ends the work. The contract is `backlog/docs/specs/doc-2 - BBB 4.0.4 delivery.md` in the
 home repo; where this page disagrees, the contract wins.
 
 ## (1) The state this starts from
@@ -263,8 +263,8 @@ the durable one is the client override, which no package owns.
 6. Optionally set `pageTokenSecret` in `/etc/bigbluebutton/bbb-web.properties` for a stable value;
    otherwise the postinst generates one. Build the full bundle, install on the `bbb40` container,
    then run the checks in (7).
-7. Prove the revert on `bbb40`; install on production; a revert kit first, as `in-place-upgrade.md`
-   describes.
+7. Prove the revert on `bbb40` (outstanding); install on production (done 2026-11-25, revert kit at
+   `/root/bbb-revert-4.0.2-20261125`); a revert kit first, as `in-place-upgrade.md` describes.
 
 ## (7) The check
 
