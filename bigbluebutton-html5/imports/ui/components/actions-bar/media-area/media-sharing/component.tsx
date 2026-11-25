@@ -277,7 +277,7 @@ const MediaSharingModal: React.FC<MediaSharingModalProps> = ({
               dataTest="uploadMediaFile"
               color="default"
               text={intl.formatMessage(intlMessages.uploadMediaFileLabel)}
-              icon={<Icon iconName="upload" />}
+              icon={<Icon iconName="listen-filled" />}
               tooltip={intl.formatMessage(intlMessages.uploadMediaFileTooltip)}
               onClick={handleMediaFileClick}
             />
